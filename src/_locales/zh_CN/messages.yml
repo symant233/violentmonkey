@@ -201,16 +201,16 @@ extDescription:
   message: 一个开源的用户脚本管理器，支持很多浏览器
 extName:
   description: Name of this extension.
-  message: 暴力猴
+  message: Violentmonkey
 failureReasonBlacklisted:
   description: Shown for blacklisted URLs (in the extension icon tooltip, in the popup)
-  message: 暴力猴黑名单设置阻止运行
+  message: Violentmonkey黑名单设置阻止运行
 failureReasonNoninjectable:
   description: >-
     Shown for URLs that cannot be processed (same places as
     failureBlacklistedUrl)
   message: |-
-    暴力猴无法在当前页面执行用户脚本
+    Violentmonkey无法在当前页面执行用户脚本
     （常见原因：浏览器/扩展内置页面、被策略屏蔽、Opera 下的搜索页面需要特殊设置）
 failureReasonRestarted:
   description: Shown in the popup.
@@ -218,8 +218,8 @@ failureReasonRestarted:
 fileInstallBlocked:
   description: Text in the installer when a local file is dropped into the browser window.
   message: >-
-    有几种方法可以在本地文件中安装或跟踪编辑： <1> 将文件拖放到打开的暴力猴页面或弹出窗口中，包括此页面。 <2>为此文件安装本地 HTTP
-    服务器并通过 http://localhost 打开它。 <3> 在 chrome://extensions 页面中为暴力猴启用“允许访问文件
+    有几种方法可以在本地文件中安装或跟踪编辑： <1> 将文件拖放到打开的Violentmonkey页面或弹出窗口中，包括此页面。 <2>为此文件安装本地 HTTP
+    服务器并通过 http://localhost 打开它。 <3> 在 chrome://extensions 页面中为Violentmonkey启用“允许访问文件
     URL”。但这是危险的，因为任何用户脚本都可以读取任何本地文件。
 filterAlphabeticalOrder:
   description: Label for option to sort scripts in alphabetical order.
@@ -298,7 +298,7 @@ installOptionTrackTooltip:
   message: 源文件页应在Firefox68或更高版本中保持打开。
 labelAbout:
   description: Label shown on top of the about page.
-  message: 关于暴力猴
+  message: 关于Violentmonkey
   touched: false
 labelAdvanced:
   description: Label for button to show advanced settings.

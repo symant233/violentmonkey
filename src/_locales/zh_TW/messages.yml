@@ -134,7 +134,7 @@ confirmUndoImport:
   message: ''
 descBlacklist:
   description: HTML Description for the global blacklist.
-  message: 出現在此清單裡的網址將不會受到暴力猴用戶腳本的影響。這意味著，這些網址不會運行任何暴力猴腳本。
+  message: 出現在此清單裡的網址將不會受到Violentmonkey用戶腳本的影響。這意味著，這些網址不會運行任何Violentmonkey腳本。
 descCustomCSS:
   description: Description of custom CSS section.
   message: 設定選項介面和腳本安裝頁的自訂 CSS 格式。如果您不清楚這部分的用途，建議您不要更改此設定。
@@ -142,7 +142,7 @@ descEditorOptions:
   description: Description of editor options JSON section.
   message: >-
     在 Violentmonkey 中，您可以為 CodeMirror 和其擴充功能透過 JSON 物件（如 <code>{"indentUnit":2,
-    "smartIndent":true}</code>）進行個人化設定。然而，請留意，某些自定義選項可能在暴力猴中無法正常使用。詳細的選項列表，請參考<a
+    "smartIndent":true}</code>）進行個人化設定。然而，請留意，某些自定義選項可能在Violentmonkey中無法正常使用。詳細的選項列表，請參考<a
     href="https://codemirror.net/doc/manual.html#config" target="_blank"
     rel="noopener noreferrer">完整清單</a>。
 descEditorOptionsGeneric:
@@ -199,16 +199,16 @@ extDescription:
   message: 開放原始碼的使用者腳本管理器，支援多種瀏覽器
 extName:
   description: Name of this extension.
-  message: 暴力猴
+  message: Violentmonkey
 failureReasonBlacklisted:
   description: Shown for blacklisted URLs (in the extension icon tooltip, in the popup)
-  message: 在暴力猴的設定被加入黑名單
+  message: 在Violentmonkey的設定被加入黑名單
 failureReasonNoninjectable:
   description: >-
     Shown for URLs that cannot be processed (same places as
     failureBlacklistedUrl)
   message: |-
-    暴力猴在這個頁面無法運行使用者腳本。
+    Violentmonkey在這個頁面無法運行使用者腳本。
     （這可能是由於頁面屬於瀏覽器的使用者介面、擴充功能、被安全政策封鎖，或者是 Opera 瀏覽器中的搜尋引擎網站。）
 failureReasonRestarted:
   description: Shown in the popup.
@@ -216,9 +216,9 @@ failureReasonRestarted:
 fileInstallBlocked:
   description: Text in the installer when a local file is dropped into the browser window.
   message: >-
-    以下是您可以安裝或監控本機檔案更改的幾種方式：<1>直接將您的檔案拖放到任何已開啟的暴力猴介面或彈出窗口中，這個介面也可以。<2>為該檔案架設一個本機
+    以下是您可以安裝或監控本機檔案更改的幾種方式：<1>直接將您的檔案拖放到任何已開啟的Violentmonkey介面或彈出窗口中，這個介面也可以。<2>為該檔案架設一個本機
     HTTP 伺服器，然後使用 http://localhost 的網址來存取它。<3>前往 Chrome
-    瀏覽器的「擴充功能」設定頁面（chrome://extensions），找到暴力猴並啟用「允許訪問檔案網址」。請特別注意，這個操作具有風險，因為這將允許所有使用者腳本讀取您電腦上的任何檔案。
+    瀏覽器的「擴充功能」設定頁面（chrome://extensions），找到Violentmonkey並啟用「允許訪問檔案網址」。請特別注意，這個操作具有風險，因為這將允許所有使用者腳本讀取您電腦上的任何檔案。
 filterAlphabeticalOrder:
   description: Label for option to sort scripts in alphabetical order.
   message: 字母順序
@@ -296,7 +296,7 @@ installOptionTrackTooltip:
   message: 在 Firefox 68 與更新版本，程式碼檔案分頁應該保持開啟。
 labelAbout:
   description: Label shown on top of the about page.
-  message: 關於暴力猴
+  message: 關於Violentmonkey
   touched: false
 labelAdvanced:
   description: Label for button to show advanced settings.
@@ -698,7 +698,7 @@ msgLoading:
   touched: false
 msgLoadingData:
   description: Message shown on confirm page when the script to be installed is loading.
-  message: 暴力猴正在載入您要安裝的腳本資料，請稍候…
+  message: Violentmonkey正在載入您要安裝的腳本資料，請稍候…
 msgLoadingDependency:
   description: Message shown on confirm page when the requirements are being downloaded.
   message: 正在載入腳本依賴…（$1/$2）

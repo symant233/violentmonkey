@@ -170,7 +170,7 @@
        v-text="i18n('msgIncognitoChanges')"/>
     <footer>
       <a v-if="reloadHint" v-text="reloadHint" :tabIndex="tabIndex" @click="reloadTab" />
-      <a v-else target="_blank" :href="'https://' + HOME" :tabIndex="tabIndex" v-text="HOME" />
+      <a v-else target="_blank" :href="`https://${HOME}/api/gm/`" :tabIndex="tabIndex" v-text="HOME" />
     </footer>
     <div class="message" v-if="message" v-text="message" :data-tall="message === TARDY_MATCH"/>
     <div v-show="topExtras" ref="$topExtras" class="extras-menu">
@@ -215,7 +215,7 @@ import { store } from '../utils';
 let mousedownElement;
 let focusBug;
 const HOME = extensionManifest.homepage_url.split('/')[2];
-const NAME = `${extensionManifest.name} ${process.env.VM_VER}`;
+const NAME = `${extensionManifest.name}`;
 const TARDY_MATCH = i18n('msgTardyMatch');
 const SCRIPT_CLS = '.script';
 const RUN_AT_ORDER = ['start', 'body', 'end', 'idle'];
