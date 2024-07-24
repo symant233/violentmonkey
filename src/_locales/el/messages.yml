@@ -7,6 +7,7 @@ buttonCancel:
 buttonCheckForUpdates:
   description: Button to check a script for updates.
   message: Έλεγχος για αναβαθμίσεις
+  touched: false
 buttonClose:
   description: Button to close window.
   message: Κλείσιμο
@@ -108,6 +109,7 @@ buttonUpdate:
 buttonUpdateAll:
   description: Check all scripts for updates.
   message: Έλεγχος όλων για αναβαθμίσεις
+  touched: false
 buttonVacuum:
   description: Button to vacuum extension data.
   message: Εκκαθάριση βάσης δεδομένων
@@ -422,6 +424,9 @@ labelHomepage:
 labelHomepageURL:
   description: Label of script @homepageURL in custom meta data.
   message: 'URL Αρχικής Σελίδας:'
+labelIconURL:
+  description: Label for the input.
+  message: ''
 labelImportScriptData:
   description: Option to import script data along with scripts.
   message: Εισαγωγή script
@@ -920,6 +925,15 @@ updateListedCmd:
   description: >-
     Command to update scripts e.g. in the extension popup, number of scripts in
     parentheses.
+  message: ''
+updateScript:
+  description: Button to update one script.
+  message: Ενημέρωση
+updateScriptsAll:
+  description: Command/button to update all scripts.
+  message: ''
+updateScriptsInTab:
+  description: Command/button to update scripts that run in current tab.
   message: ''
 valueLabelKey:
   description: Label for key of a script value.

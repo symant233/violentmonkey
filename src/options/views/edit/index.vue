@@ -100,19 +100,23 @@ import { externalEditorInfoUrl, focusMe, getActiveElement, showMessage } from '@
 import { keyboardService } from '@/common/keyboard';
 import options from '@/common/options';
 import { getUnloadSentry } from '@/common/router';
-import { kExclude, kExcludeMatch, kInclude, kMatch } from '../../utils';
+import {
+  kDownloadURL, kExclude, kExcludeMatch, kHomepageURL, kIcon, kInclude, kMatch, kName, kOrigExclude, kOrigExcludeMatch,
+  kOrigInclude, kOrigMatch, kUpdateURL,
+} from '../../utils';
 
 const urlMatching = 'https://violentmonkey.github.io/api/matching/';
 const CUSTOM_PROPS = {
-  name: '',
-  homepageURL: '',
-  updateURL: '',
-  downloadURL: '',
+  [kName]: '',
+  [kHomepageURL]: '',
+  [kUpdateURL]: '',
+  [kDownloadURL]: '',
+  [kIcon]: '',
+  [kOrigInclude]: true,
+  [kOrigExclude]: true,
+  [kOrigMatch]: true,
+  [kOrigExcludeMatch]: true,
   tags: '',
-  origInclude: true,
-  origExclude: true,
-  origMatch: true,
-  origExcludeMatch: true,
 };
 const toProp = val => val !== '' ? val : null; // `null` removes the prop from script object
 const CUSTOM_LISTS = [
@@ -153,7 +157,7 @@ import { computed, nextTick, onActivated, onDeactivated, onMounted, ref, watch }
 import VmCode from '@/common/ui/code';
 import VmExternals from '@/common/ui/externals';
 import LocaleGroup from '@/common/ui/locale-group';
-import { store } from '../../utils';
+import { inferSaveHotKey, K_SAVE, kStorageSize, store } from '../../utils';
 import VmSettings from './settings';
 import VMSettingsUpdate from './settings-update';
 import VmValues from './values';
@@ -162,7 +166,6 @@ import VmHelp from './help';
 let CM;
 let $codeComp;
 let disposeList;
-let K_SAVE; // deduced from the current CodeMirror keymap
 let savedCopy;
 let shouldSavePositionOnSave;
 let toggleUnloadSentry;
@@ -207,10 +210,10 @@ const frozen = ref(false);
 const frozenNote = ref(false);
 
 const navItems = computed(() => {
-  const { meta, props: { id } } = script.value;
+  const { meta, props: { id }, $cache = {} } = script.value;
   const req = meta.require.length && '@require';
   const res = !isEmpty(meta.resources) && '@resource';
-  const size = store.storageSize;
+  const size = $cache[kStorageSize];
   return {
     code: i18n('editNavCode'),
     settings: i18n('editNavSettings'),
@@ -257,7 +260,6 @@ onMounted(() => {
   if (options.get('editorWindow') && global.history.length === 1) {
     browser.windows?.getCurrent({ populate: true }).then(setupSavePosition);
   }
-  store.storageSize = 0;
   // hotkeys
   const navLabels = Object.values(navItems.value);
   const hk = hotkeys.value = [
@@ -266,11 +268,7 @@ onMounted(() => {
     ...Object.entries($codeComp.expandKeyMap())
     .sort((a, b) => compareString(a[1], b[1]) || compareString(a[0], b[0])),
   ];
-  K_SAVE = hk.find(([, cmd]) => cmd === 'save')?.[0];
-  if (!K_SAVE) {
-    K_SAVE = 'Ctrl-S';
-    hk.unshift([K_SAVE, 'save']);
-  }
+  if (!K_SAVE) inferSaveHotKey(hk);
 });
 
 onActivated(() => {
@@ -320,7 +318,7 @@ async function save() {
       // otherwise the script with same namespace will be overridden
       isNew: !id,
       message: '',
-      reuseDeps: true,
+      bumpDate: true,
     });
     const newId = res?.where?.id;
     CM.markClean();
@@ -447,7 +445,6 @@ function setupSavePosition({ id: curWndId, tabs }) {
   }
   &-body {
     padding: .5rem 1rem;
-    // overflow: auto;
     background: var(--bg);
     flex: 1;
   }
@@ -515,10 +512,13 @@ function setupSavePosition({ id: curWndId, tabs }) {
   }
 }
 
-.touch .edit {
-  // fixed/absolute doesn't work well with scroll in Firefox Android
-  position: static;
-  // larger than 100vh to force overflow so that the toolbar can be hidden in Firefox Android
+.touch body {
+  position: relative;
+  /*
+   * Set height to 1px larger than screen height to force overflow so that the toolbar can be hidden in Firefox Android.
+   * Use `100vh` (largest possible viewport) to avoid flashing caused by URL bar resizing.
+   * See https://developer.chrome.com/blog/url-bar-resizing
+   */
   min-height: calc(100vh + 1px);
 }
 

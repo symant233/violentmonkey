@@ -1,6 +1,6 @@
-import bridge, { addHandlers } from './bridge';
+import bridge, { addHandlers, callbacks } from './bridge';
 import { commands, storages } from './store';
-import { GM_API } from './gm-api';
+import { GM_API_CTX } from './gm-api';
 import { makeGmApiWrapper } from './gm-api-wrapper';
 import './gm-values';
 import './notifications';
@@ -33,8 +33,8 @@ export default function initialize(invokeHost, console) {
         logging[m] = (...args) => bridge.post('Log', [m, args]);
       }
       /** @this {GMContext} */
-      GM_API.bound.GM_log = function (...args) {
-        bridge.post('Log', ['log', safeConcat([`[${this.script.displayName}]`], args)]);
+      GM_API_CTX.GM_log = function (...args) {
+        bridge.post('Log', ['log', safeConcat([`[${this.displayName}]`], args)]);
       };
     }
   } else {
@@ -62,8 +62,9 @@ addHandlers({
   },
   /** @this {Node} */
   Callback({ id, data }) {
-    const fn = bridge.callbacks[id];
-    delete bridge.callbacks[id];
+    if (id === 'Error') throw data;
+    const fn = callbacks[id];
+    delete callbacks[id];
     if (fn) this::fn(data);
   },
   async Plant({ data: dataKey, win: winKey }) {

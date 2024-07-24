@@ -1,26 +1,34 @@
 <template>
   <div class="edit-values flex" ref="$el" :data-editing="current && ''">
     <div class="flex-1 flex flex-col">
-      <div class="mb-1">
-        <button @click="onNew" v-if="!readOnly">+</button>
-        <div class="inline-block ml-2" v-if="totalPages > 1">
-          <button :disabled="page === 1" @click="page -= 1">&larr;</button>
-          <span class="ml-1" v-text="page"/> / <span class="mr-1" v-text="totalPages"/>
-          <button :disabled="page >= totalPages" @click="page += 1">&rarr;</button>
-        </div>
-        <span class="ml-2 mr-2c">
-          <span>
-            <template v-if="totalPages > 1">
-              <kbd>PageUp</kbd>, <kbd>PageDown</kbd>,
-            </template>
-            <kbd>↑</kbd>, <kbd>↓</kbd>, <kbd>Tab</kbd>, <kbd>Shift-Tab</kbd>,
-          </span>
-          <span><kbd>Enter</kbd>: {{i18n('buttonEdit')}},</span>
-          <span><kbd>Ctrl-Del</kbd>: {{i18n('buttonRemove')}}</span>
-        </span>
-      </div>
+      <nav class="mb-1 flex center-items">
+        <a @click="onNew" v-if="!readOnly" class="btn-ghost" tabindex="0">
+          <Icon name="plus"/>
+        </a>
+        <template v-if="totalPages > 1">
+          <a @click="flipPage(-1)" class="btn-ghost" tabindex="0"
+             :class="{ subtle: page === 1 }">⏴</a>
+          <input v-model="page" type="number" @wheel="flipPage($event.deltaY > 0 ? 1 : -1)">
+          <span v-text="`\xA0/\xA0${totalPages}`"/>
+          <a @click="flipPage(1)" class="btn-ghost" tabindex="0"
+             :class="{ subtle: page >= totalPages }">⏵</a>
+        </template>
+        <Dropdown>
+          <a class="btn-ghost" tabindex="0">
+            <Icon name="info"/>
+          </a>
+          <template #content>
+            <ul>
+              <li><kbd>PageUp</kbd>, <kbd>PageDown</kbd></li>
+              <li><kbd>↑</kbd>, <kbd>↓</kbd>, <kbd>Tab</kbd>, <kbd>Shift-Tab</kbd></li>
+              <li><span><kbd>Enter</kbd>: {{i18n('buttonEdit')}},</span></li>
+              <li v-if="!readOnly"><span><kbd>Ctrl-Del</kbd>: {{i18n('buttonRemove')}}</span></li>
+            </ul>
+          </template>
+        </Dropdown>
+      </nav>
       <div class="edit-values-table main"
-         :style="{ '--keyW': pageKeys.width + 'ch' }"
+         :style="pageKeys.style"
            @keydown.down.exact="onUpDown"
            @keydown.up.exact="onUpDown">
         <a
@@ -38,15 +46,17 @@
           </div>
           <div class="ellipsis flex-auto" v-text="getValue(key, true)"></div>
           <pre v-text="getLength(key)"/>
-          <div class="del" @click.stop="onRemove(key)">
+          <div class="del" @click.stop="onRemove(key)" v-if="!readOnly">
             <icon name="trash"/>
           </div>
         </div>
       </div>
+      <div class="edit-values-empty mt-1" v-if="!loading && !keys.length" v-text="i18n('noValues')"/>
       <h3 v-text="i18n('headerRecycleBin')" v-if="trash"/>
       <div class="edit-values-table trash monospace-font"
            @keydown.down.exact="onUpDown"
            @keydown.up.exact="onUpDown"
+           :style="trashKeyWidthStyle"
            v-if="trash">
         <!-- eslint-disable-next-line vue/no-unused-vars -->
         <div v-for="({ key, cut, len }, trashKey) in trash" :key="trashKey"
@@ -57,7 +67,6 @@
           <pre v-text="len"/>
         </div>
       </div>
-      <div class="edit-values-empty mt-1" v-if="!loading && !keys.length" v-text="i18n('noValues')"/>
     </div>
     <div class="edit-values-panel flex flex-col flex-1 mb-1c" v-if="current">
       <div class="control">
@@ -83,6 +92,7 @@
         <input type="text" v-model="current.key" :readOnly="!current.isNew || readOnly"
                ref="$key"
                spellcheck="false"
+               @keydown="onKeyDownInKeyInput"
                @keydown.esc.exact.stop="onCancel">
       </label>
       <label>
@@ -95,6 +105,7 @@
           mode="application/json"
           :readOnly="readOnly"
           @code-dirty="onChange"
+          @keydown.tab.shift.exact.capture.stop
           :commands="{ close: onCancel, save: onSave }"
           :active="isActive"
           focusme
@@ -108,14 +119,16 @@
 import { computed, nextTick, onActivated, onDeactivated, ref, watch } from 'vue';
 import { dumpScriptValue, formatByteLength, getBgPage, isEmpty, sendCmdDirectly } from '@/common';
 import { handleTabNavigation, keyboardService } from '@/common/keyboard';
-import { deepCopy, deepEqual, mapEntry } from '@/common/object';
+import { deepCopy, deepEqual, forEachEntry, mapEntry } from '@/common/object';
 import { WATCH_STORAGE } from '@/common/consts';
 import hookSetting from '@/common/hook-setting';
+import CodeMirror from 'codemirror';
+import Dropdown from 'vueleton/lib/dropdown';
 import VmCode from '@/common/ui/code';
 import Icon from '@/common/ui/icon';
 import { getActiveElement, showMessage } from '@/common/ui';
 import SettingText from '@/common/ui/setting-text';
-import { store, toggleBoolean } from '../../utils';
+import { K_SAVE, kStorageSize, toggleBoolean } from '../../utils';
 
 const props = defineProps({
   /** @type {VMScript} */
@@ -133,6 +146,9 @@ const loading = ref(true);
 const page = ref();
 const values = ref();
 const trash = ref();
+const trashKeyWidthStyle = computed(() => (
+  updateKeyWidthStyle(Object.values(trash.value), 'key')
+));
 
 const PAGE_SIZE = 25;
 const MAX_LENGTH = 1024;
@@ -158,9 +174,7 @@ const totalPages = computed(() => Math.ceil(keys.value.length / PAGE_SIZE));
 const pageKeys = computed(() => {
   const offset = PAGE_SIZE * (page.value - 1);
   const res = keys.value.slice(offset, offset + PAGE_SIZE);
-  for (let i = 0, max = 0; i < res.length; i++ ) {
-    res.width = max = Math.max(max, res[i].length);
-  }
+  res.style = updateKeyWidthStyle(res);
   return res;
 });
 
@@ -274,10 +288,23 @@ function getValueAll() {
     .replace(/\n/g, '\n' + jsonIndent) // also handles nested linebreaks inside objects/arrays
   }\n}`;
 }
-function setData(data) {
+function setData(data, isSave) {
   // Note: default parameter doesn't work when data=null
   data ??= {};
-  if (!deepEqual(values.value, data)) {
+  const oldData = values.value;
+  let changed;
+  if (isSave) {
+    oldData::forEachEntry(([key, val]) => {
+      if (val !== data[key]) {
+        addToTrash(key);
+        changed = true;
+      }
+    });
+    changed ??= true; // empty oldData
+  } else {
+    changed = !deepEqual(oldData, data);
+  }
+  if (changed) {
     values.value = data;
     page.value = Math.min(page.value, totalPages.value) || 1;
     calcSize();
@@ -285,16 +312,28 @@ function setData(data) {
   }
 }
 function calcSize() {
-  store.storageSize = keys.value.reduce((sum, key) => sum
+  const { script } = props;
+  const { $cache = script.$cache = {} } = script;
+  const res = keys.value.reduce((sum, key) => sum
     + key.length + 4 + values.value[key].length + 2, 0);
+  $cache[kStorageSize] = res ? res + 2 : res; // {}
+}
+
+function updateKeyWidthStyle(items, propName) {
+  let max = 0;
+  for (const item of items) max = Math.max(max, (propName ? item[propName] : item).length);
+  return { '--keyW': `${max}ch` };
 }
 async function updateValue({
   key,
   jsonValue,
   rawValue = dumpScriptValue(jsonValue) || '',
-}) {
+}, isSave) {
+  if (isSave && keys.value.includes(key)) {
+    addToTrash(key);
+  }
   const { id } = props.script.props;
-  await sendCmdDirectly('UpdateValue', { id, key, raw: rawValue }, undefined, sender);
+  await sendCmdDirectly('UpdateValue', { [id]: { [key]: rawValue } }, undefined, sender);
   if (rawValue) {
     values.value[key] = rawValue;
   } else {
@@ -311,14 +350,23 @@ function onNew() {
     ...currentObservables,
   };
 }
-async function onRemove(key) {
-  updateValue({ key });
+function addToTrash(
+  key,
+  rawValue = values.value[key],
+  cut = getValue(key, true),
+  len = getLength(key, rawValue),
+) {
   (trash.value || (trash.value = {}))[key + Math.random()] = {
     key,
-    rawValue: values.value[key],
-    cut: getValue(key, true),
-    len: getLength(key),
+    rawValue,
+    cut,
+    len,
   };
+}
+function onRemove(key) {
+  if (props.readOnly) return;
+  updateValue({ key });
+  addToTrash(key);
   if (current.value?.key === key) {
     current.value = null;
   }
@@ -368,23 +416,17 @@ async function onSave(buttonIndex) {
     await sendCmdDirectly('SetValueStores', {
       [props.script.props.id]: newValues,
     });
-    setData(newValues);
+    setData(newValues, true);
   } else {
-    await updateValue(cur);
+    await updateValue(cur, true);
   }
 }
 function onCancel() {
   const cur = current.value;
   if (cur.dirty) {
-    const key = `${cur.key} ${Math.random() * 1e9 | 0}`;
-    const val = cm.getValue();
-    const rawValue = dumpScriptValue(val);
-    (trash.value || (trash.value = {}))[key] = {
-      key,
-      rawValue,
-      cut: cutLength(val),
-      len: getLength(key, rawValue),
-    };
+    const str = cm.getValue().trim();
+    const {jsonValue = str} = cur;
+    addToTrash(cur.key, dumpScriptValue(jsonValue), cutLength(str));
   }
   current.value = null;
 }
@@ -392,11 +434,12 @@ function onChange(isChanged) {
   const cur = current.value;
   cur.dirty = isChanged;
   cur.error = null;
-  if (cur.jsonPaused) return;
   const t0 = performance.now();
+  const str = cm.getValue().trim();
   try {
-    const str = cm.getValue();
-    cur.jsonValue = str.trim() ? JSON.parse(str) : undefined;
+    if (cur.isAll && str[0] !== '{') throw 'Expected { at position 0';
+    if (cur.jsonPaused) return;
+    cur.jsonValue = JSON.parse(str);
   } catch (e) {
     const re = /(position\s+)(\d+)|$/;
     const pos = cm.posFromIndex(+`${e}`.match(re)[2] || 0);
@@ -405,6 +448,11 @@ function onChange(isChanged) {
     cur.jsonValue = undefined;
   }
   cur.jsonPaused = performance.now() - t0 > MAX_JSON_DURATION;
+}
+function onKeyDownInKeyInput(evt) {
+  if (CodeMirror.keyName(evt) === K_SAVE) {
+    onSave();
+  }
 }
 function onStorageChanged(changes) {
   const data = Object.values(changes)[0].newValue;
@@ -454,6 +502,24 @@ $lightBorder: 1px solid var(--fill-2);
           display: none;
         }
       }
+    }
+  }
+  nav {
+    a.btn-ghost {
+      font-size: 1.3rem;
+    }
+    input {
+      padding: 0 1ex;
+      max-width: 5ch;
+      field-sizing: content;
+      -moz-appearance: textfield;
+      &::-webkit-inner-spin-button,
+      &::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+      }
+    }
+    ul {
+      width: max-content;
     }
   }
   &-row {
@@ -506,6 +572,7 @@ $lightBorder: 1px solid var(--fill-2);
   }
   &-table {
     overflow-y: auto;
+    min-height: 2.5em;
   }
   &-panel {
     .control {

@@ -18,7 +18,7 @@ declare interface GMContext {
   id: number;
   resCache: StringMap;
   resources: StringMap;
-  script: VMInjection.Script;
+  displayName: string;
 }
 
 /**
@@ -30,11 +30,16 @@ declare namespace GMReq {
   type UserOpts = VMScriptGMDownloadOptions | VMScriptGMXHRDetails;
   interface BG {
     cb: (data: GMReq.Message.BGAny) => Promise<void>;
+    /** use browser's `Cookie` header */
+    cookie?: boolean;
+    /** allow Set-Cookie header to affect browser */
+    'set-cookie'?: boolean;
     coreId: number;
+    /** Firefox-only workaround for CSP blocking a blob: URL */
+    fileName: string;
     frame: VMMessageTargetFrame;
     frameId: number;
     id: string;
-    noNativeCookie: boolean;
     responseHeaders: string;
     storeId: string;
     tabId: number;
@@ -97,7 +102,7 @@ declare namespace GMReq {
       password?: string;
       responseType: XMLHttpRequestResponseType;
       timeout?: number;
-      ua: string;
+      ua?: string[];
       url: string;
       user?: string;
       /** responseType to use in the actual XHR */
@@ -124,6 +129,25 @@ declare type VMBridgePostFunc = (
 //#region VM-specific
 
 declare type VMBadgeMode = 'unique' | 'total' | ''
+
+declare type VMBadgeData = {
+  /** Map: frameId -> number of scripts in this frame */
+  frameIds: { [frameId: string]: number };
+  icon: string;
+  /** all ids */
+  ids: Set<number>;
+  /**
+   * undefined = after VM started (unknown injectability),
+   * null = after tab navigated (unknown injectability),
+   * false = without scripts,
+   * true = with some scripts,
+   * 'SkipScripts' = skip scripts mode,
+   * 'off' = loaded when isApplied was off
+   */
+  inject: boolean | string;
+  total: number;
+  unique: number;
+}
 
 /**
  * Internal script representation
@@ -154,6 +178,7 @@ declare namespace VMScript {
     homepageURL?: string;
     lastInstallURL?: string;
     updateURL?: string;
+    icon?: string;
     injectInto?: VMScriptInjectInto;
     noframes?: NumBoolNull;
     exclude?: string[];
@@ -166,6 +191,7 @@ declare namespace VMScript {
     origMatch: boolean;
     pathMap?: StringMap;
     runAt?: VMScriptRunAt;
+    tags?: string;
   }
   type Meta = {
     description?: string;
@@ -185,6 +211,7 @@ declare namespace VMScript {
     resources: StringMap;
     runAt?: VMScriptRunAt;
     supportURL?: string;
+    topLevelAwait?: boolean;
     unwrap?: boolean;
     version?: string;
   }
@@ -337,7 +364,6 @@ declare type VMStorageFetch = (
   url: string,
   /** 'res' makes the function resolve with the result */
   options?: VMReq.Options | 'res',
-  check?: (...args) => void // throws on error
 ) => Promise<void>
 
 /** Augmented by handleCommandMessage in messages from the content script */

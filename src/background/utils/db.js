@@ -3,7 +3,7 @@ import {
   getFullUrl, getScriptName, getScriptUpdateUrl, isRemote, sendCmd, trueJoin,
   getScriptPrettyUrl, getScriptRunAt, makePause, isValidHttpUrl, normalizeTag,
 } from '@/common';
-import { INFERRED, TIMEOUT_24HOURS, TIMEOUT_WEEK } from '@/common/consts';
+import { INFERRED, TIMEOUT_24HOURS, TIMEOUT_WEEK, TL_AWAIT } from '@/common/consts';
 import { deepSize, forEachEntry, forEachKey, forEachValue } from '@/common/object';
 import pluginEvents from '../plugin/events';
 import { getDefaultCustom, getNameURI, inferScriptProps, newScript, parseMeta } from './script';
@@ -146,6 +146,7 @@ addOwnCommands({
       } = script;
       if (!meta.require) meta.require = [];
       if (!meta.resources) meta.resources = {};
+      if (TL_AWAIT in meta) meta[TL_AWAIT] = true; // a string if the script was saved in old VM
       meta.grant = [...new Set(meta.grant || [])]; // deduplicate
     }
   });
@@ -262,7 +263,7 @@ const makeEnv = () => ({
   [RUN_AT]: {},
   [SCRIPTS]: [],
 });
-const GMVALUES_RE = /^GM[_.](listValues|([gs]et|delete)Value)$/;
+const GMVALUES_RE = /^GM[_.](listValues|([gs]et|delete)Values?)$/;
 const STORAGE_ROUTES = {
   [S_CACHE]: CACHE_KEYS,
   [S_CODE]: IDS,
@@ -447,18 +448,19 @@ export function notifyToOpenScripts(title, text, ids) {
  * @desc Get data for dashboard.
  * @return {Promise<{ scripts: VMScript[], cache: Object }>}
  */
-export async function getData({ ids, sizes }) {
+export async function getData({ id, ids, sizes }) {
+  if (id) ids = [id];
+  const res = {};
   const scripts = ids
     // Some ids shown in popup/editor may have been hard-deleted
     ? getScriptsByIdsOrAll(ids).filter(Boolean)
     : getScriptsByIdsOrAll();
   scripts.forEach(inferScriptProps);
-  return {
-    [SCRIPTS]: scripts,
-    cache: await getIconCache(scripts),
-    sizes: sizes && getSizes(ids),
-    sync: sizes && commands.SyncGetStates(),
-  };
+  res[SCRIPTS] = scripts;
+  if (sizes) res.sizes = getSizes(ids);
+  if (!id) res.cache = await getIconCache(scripts);
+  if (!id && sizes) res.sync = commands.SyncGetStates();
+  return res;
 }
 
 /**
@@ -472,7 +474,8 @@ async function getIconCache(scripts) {
   const toGet = [`${ICON_PREFIX}38.png`];
   const toPrime = [];
   const res = {};
-  for (let { custom, meta: { icon } } of scripts) {
+  for (let { custom, meta } of scripts) {
+    let icon = custom.icon || meta.icon;
     if (isValidHttpUrl(icon)) {
       icon = custom.pathMap[icon] || icon;
       toGet.push(icon);
@@ -660,7 +663,7 @@ export async function parseScript(src) {
   const depsPromise = fetchResources(script, src);
   // DANGER! Awaiting here when all props are set to avoid modifications made by a "concurrent" call
   const codeChanged = !oldScript || code !== await storage[S_CODE].getOne(id);
-  if (codeChanged) props.lastUpdated = now;
+  if (codeChanged && src.bumpDate) props.lastUpdated = now;
   // Installer has all the deps, so we'll put them in storage first
   if (src.cache) await depsPromise;
   await storage.base.set({
@@ -697,25 +700,29 @@ function buildPathMap(script, base) {
 
 /** @return {Promise<?string>} resolves to error text if `resourceCache` is absent */
 export async function fetchResources(script, resourceCache, reqOptions) {
-  const { custom: { pathMap }, meta } = script;
-  const snatch = async (url, type, validator) => {
+  const { custom, meta } = script;
+  const { pathMap } = custom;
+  const snatch = async (url, type) => {
     if (!url || isDataUri(url)) return;
     url = pathMap[url] || url;
     const contents = resourceCache?.[type]?.[url];
-    if (contents != null && (!validator || resourceCache?.reuseDeps)) {
+    if (contents != null) {
       storage[type].setOne(url, contents);
       return;
     }
-    if (!resourceCache || validator || await storage[type].getOne(url) == null) {
-      return storage[type].fetch(url, reqOptions, validator).catch(err => err);
+    if (!resourceCache
+    || !resourceCache.reuseDeps && !isRemote(url)
+    || await storage[type].getOne(url) == null) {
+      return storage[type].fetch(url, reqOptions).catch(err => err);
     }
   };
+  const icon = custom.icon || meta.icon;
   const errors = await Promise.all([
     ...meta.require.map(url => snatch(url, S_REQUIRE)),
     ...Object.values(meta.resources).map(url => snatch(url, S_CACHE)),
-    isRemote(meta.icon) && Promise.race([
+    isRemote(icon) && Promise.race([
       makePause(1000), // ensures slow icons don't prevent installation/update
-      snatch(meta.icon, S_CACHE, validateImage),
+      snatch(icon, S_CACHE),
     ]),
   ]);
   if (!resourceCache?.ignoreDepsErrors) {
@@ -729,22 +736,6 @@ export async function fetchResources(script, resourceCache, reqOptions) {
       return `${message}\n${error}`;
     }
   }
-}
-
-/** @return {Promise<void>} resolves on success, rejects on error */
-function validateImage(url, buf, type) {
-  return new Promise((resolve, reject) => {
-    const blobUrl = URL.createObjectURL(new Blob([buf], { type }));
-    const onDone = (e) => {
-      URL.revokeObjectURL(blobUrl);
-      if (e.type === 'load') resolve();
-      else reject(`IMAGE_ERROR: ${url}`);
-    };
-    const image = new Image();
-    image.onload = onDone;
-    image.onerror = onDone;
-    image.src = blobUrl;
-  });
 }
 
 function formatHttpError(e) {
@@ -790,8 +781,14 @@ export async function vacuum(data) {
       if (id !== scriptId) {
         status[S_MOD_PRE + id] = 1;
       }
-      if (prefix !== S_MOD_PRE) {
-        sizes[key] = deepSize(data[key]) + (prefix === S_VALUE_PRE ? 0 : key.length);
+      if (prefix === S_VALUE_PRE) {
+        if ((sizes[key] = deepSize(data[key])) === 2) {
+          // remove empty {}
+          sizes[key] = 0;
+          status[key] = -1;
+        }
+      } else if (prefix !== S_MOD_PRE) {
+        sizes[key] = deepSize(data[key]) + key.length;
       }
     } else if (!val && !prefixIgnoreMissing.includes(prefix)) {
       status[key] = 2 + scriptId;
@@ -806,7 +803,7 @@ export async function vacuum(data) {
   scriptSizes = sizes;
   getScriptsByIdsOrAll().forEach((script) => {
     const { meta, props } = script;
-    const { icon } = meta;
+    const icon = script.custom.icon || meta.icon;
     const { id } = props;
     const pathMap = script.custom.pathMap || buildPathMap(script);
     const updUrls = getScriptUpdateUrl(script, { all: true });

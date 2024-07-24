@@ -7,6 +7,7 @@ buttonCancel:
 buttonCheckForUpdates:
   description: Button to check a script for updates.
   message: Güncellemeleri denetle
+  touched: false
 buttonClose:
   description: Button to close window.
   message: Kapat
@@ -82,7 +83,7 @@ buttonReset:
   message: Sıfırla
 buttonResetSettings:
   description: Button in settings page to reset all settings
-  message: ''
+  message: Ayarları sıfırla
 buttonRestore:
   description: Button to restore a removed script.
   message: Geri Yükle
@@ -110,6 +111,7 @@ buttonUpdate:
 buttonUpdateAll:
   description: Check all scripts for updates.
   message: Güncellemeleri denetle
+  touched: false
 buttonVacuum:
   description: Button to vacuum extension data.
   message: Verileri al
@@ -134,7 +136,9 @@ confirmUndoImport:
   description: >-
     Tooltip of the Undo button after importing a zip in settings. The same text
     is also shown as a confirmation dialog after clicking this button.
-  message: ''
+  message: >-
+    Veritabanında yapılan tüm değişiklikleri geri alma (içe aktarma, güncelleme,
+    düzenleme, özelleştirme)
 descBlacklist:
   description: HTML Description for the global blacklist.
   message: Listede eşleşen URL girişleri betik tarafından eklenmeyecek.
@@ -439,6 +443,9 @@ labelHomepage:
 labelHomepageURL:
   description: Label of script @homepageURL in custom meta data.
   message: 'Ana sayfa URL:'
+labelIconURL:
+  description: Label for the input.
+  message: ''
 labelImportScriptData:
   description: Option to import script data along with scripts.
   message: Betik verisini aktar
@@ -966,6 +973,15 @@ updateListedCmd:
     Command to update scripts e.g. in the extension popup, number of scripts in
     parentheses.
   message: Betikleri güncelle ($1)
+updateScript:
+  description: Button to update one script.
+  message: Güncelle
+updateScriptsAll:
+  description: Command/button to update all scripts.
+  message: ''
+updateScriptsInTab:
+  description: Command/button to update scripts that run in current tab.
+  message: ''
 valueLabelKey:
   description: Label for key of a script value.
   message: Anahtar (metin)

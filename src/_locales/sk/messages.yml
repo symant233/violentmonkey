@@ -7,6 +7,7 @@ buttonCancel:
 buttonCheckForUpdates:
   description: Button to check a script for updates.
   message: Skontrolovať aktualizácie
+  touched: false
 buttonClose:
   description: Button to close window.
   message: Zavrieť
@@ -110,6 +111,7 @@ buttonUpdate:
 buttonUpdateAll:
   description: Check all scripts for updates.
   message: Skontrolovať aktualizácie
+  touched: false
 buttonVacuum:
   description: Button to vacuum extension data.
   message: Prečistiť databázu
@@ -455,6 +457,9 @@ labelHomepage:
 labelHomepageURL:
   description: Label of script @homepageURL in custom meta data.
   message: 'Adresa domovskej stránky:'
+labelIconURL:
+  description: Label for the input.
+  message: Adresa URL ikony
 labelImportScriptData:
   description: Option to import script data along with scripts.
   message: Importovať dáta skriptu
@@ -1007,6 +1012,15 @@ updateListedCmd:
     Command to update scripts e.g. in the extension popup, number of scripts in
     parentheses.
   message: Aktualizovať skripty ($1)
+updateScript:
+  description: Button to update one script.
+  message: Aktualizácia
+updateScriptsAll:
+  description: Command/button to update all scripts.
+  message: Aktualizovať všetky skripty
+updateScriptsInTab:
+  description: Command/button to update scripts that run in current tab.
+  message: Aktualizovať skripty pre aktuálnu kartu
 valueLabelKey:
   description: Label for key of a script value.
   message: Kľúč (reťazec)

@@ -60,12 +60,20 @@ const globalKeys = (function makeGlobalKeys() {
   return ok ? names : globalKeysSet.toArray();
 }());
 const inheritedDesc = createNullObj();
+
+const isChildWindowKey = key => isString(key) /* skipping Symbol as it throws on conversion */
+  && (key = +key) >= 0 /* is number */
+  && (key === (key | 0)) /* is 32-bit integer, no fraction */
+  && key < window::getWindowLength();
+
 const updateGlobalDesc = name => {
   let src;
+  let isChild;
   const descFn = globalFunctionDesc[name];
   const desc = descFn
     || inheritedDesc[name]
-    || (src = globalKeysSet.get(name)) && describeProperty(src = src > 0 ? window : global, name);
+    || (src = globalKeysSet.get(name) || (isChild = isChildWindowKey(name)))
+    && describeProperty(src = src > 0 ? window : global, name);
   if (!desc) return;
   if (!descFn) setPrototypeOf(desc, null);
   else if (process.env.DEV && getPrototypeOf(desc)) throw 'proto must be null';
@@ -77,7 +85,7 @@ const updateGlobalDesc = name => {
     desc.value = defineProperty(fn, 'name', { __proto__: null, value: name });
     globalFunctionDesc[name] = undefined;
     globalDesc[name] = desc;
-  } else if (!(+name >= 0 && name < window::getWindowLength())) {
+  } else if (!isChild) {
     // Using `!` to avoid the need to use and safe-guard isNaN
     globalDesc[name] = desc;
   }
@@ -127,7 +135,7 @@ export function makeGlobalWrapper(local) {
     get: (_, name) => {
       if (name === 'undefined' || name === scopeSym) return;
       if ((_ = local[name]) !== undefined || name in local) return _;
-      return proxyDescribe(local, name, wrapper, events) && local[name];
+      return proxyDescribe(local, name, wrapper, events, true);
     },
     getOwnPropertyDescriptor: (_, name) => describeProperty(local, name)
       || proxyDescribe(local, name, wrapper, events),
@@ -159,10 +167,12 @@ function makeOwnKeys(local, globals) {
   );
 }
 
-function proxyDescribe(local, name, wrapper, events) {
-  let desc = globalDesc[name] || updateGlobalDesc(name);
+function proxyDescribe(local, name, wrapper, events, returnAsValue) {
+  let known;
+  let desc = (known = globalDesc[name]) || updateGlobalDesc(name);
   if (!desc) return;
-  const { get, set, value } = desc;
+  let { get, set, value } = desc;
+  const isChild = !known && isChildWindowKey(name);
   const isWindow = value === window
     || name === 'window'
     || name === 'self'
@@ -170,10 +180,11 @@ function proxyDescribe(local, name, wrapper, events) {
     || name === 'top' && window === top // `top` is unforgeable
     || name === 'parent' && window === window::getWindowParent();
   if (isWindow) {
-    desc.value = wrapper;
+    value = desc.value = wrapper;
+    get = false;
     delete desc.get;
     delete desc.set;
-  } else if (get && set && typeof name === 'string'
+  } else if (get && set && isString(name)
     // Spoofed String index getters won't be called within length, length itself is unforgeable
     && name.length >= 3 && name[0] === 'o' && name[1] === 'n'
   ) {
@@ -181,10 +192,15 @@ function proxyDescribe(local, name, wrapper, events) {
   } else {
     if (get) desc.get = safeBind(get, window);
     if (set) desc.set = safeBind(set, window);
-    if (value && name === kConsole) desc.value = safeAssign({}, value);
+    if (value && name === kConsole) desc.value = value = safeAssign({}, value);
   }
-  defineProperty(local, name, desc); /* proto is null */// eslint-disable-line no-restricted-syntax
-  return desc;
+  if (!isChild) {
+    defineProperty(local, name, desc); /* proto is null */// eslint-disable-line no-restricted-syntax
+  }
+  return !returnAsValue ? desc
+    : !get ? value
+      : isChild ? global[name]
+        : local[name];
 }
 
 function setWindowEvent(desc, name, events, wrapper) {

@@ -97,7 +97,7 @@
             @click="onToggleScript(item)">
             <img class="script-icon" :src="item.data.safeIcon">
             <icon :name="getSymbolCheck(item.data.config.enabled)"></icon>
-            <div class="script-name flex-auto ellipsis"
+            <div class="script-name ellipsis"
                  @click.ctrl.exact.stop="onEditScript(item)"
                  @contextmenu.exact.stop.prevent="onEditScript(item)"
                  @mousedown.middle.exact.stop="onEditScript(item)">
@@ -221,7 +221,7 @@ const SCRIPT_CLS = '.script';
 const RUN_AT_ORDER = ['start', 'body', 'end', 'idle'];
 const kFiltersPopup = 'filtersPopup';
 const kUpdateEnabledScriptsOnly = 'updateEnabledScriptsOnly';
-const needsReload = {};
+const needsReload = reactive({});
 
 const $root = ref();
 const $extras = ref();
@@ -539,22 +539,28 @@ function showButtons(item) {
   return extras.value?.id === item.id || focusedItem.value?.id === item.id || focusBug;
 }
 
-onMounted(async () => {
+onMounted(() => {
   const $el = $root.value;
-  const $elStyle = $el.style;
-  const oldDocH = IS_FIREFOX && document.documentElement.clientHeight;
-  const oldH = innerHeight;
-  // Can't rely on devicePixelRatio because Chrome's page zoom doesn't change popup's real height
-  const newH = (
-    $elStyle.height = screen.availHeight - screenY - 8 + 'px',
-    $el.clientHeight /* forcing layout re-calc */,
-    IS_FIREFOX && await new Promise(requestAnimationFrame),
-    innerHeight
-  );
-  // Firefox may take more than one RAF to change the size of the popup,
-  // so we'll use a hardcoded height, which can be bigger than 600px in Android
-  $elStyle.maxHeight = (newH !== oldH && newH !== oldDocH ? newH : Math.max(600, newH)) + 'px';
-  $elStyle.height = '';
+  const style = $el.style;
+  // Chrome bug: the popup's initial devicePixelRatio equals zoom level of a normal extension page
+  const ratio = !IS_FIREFOX && devicePixelRatio;
+  if (ratio && ratio !== 1) {
+    self.onresize = () => {
+      if (ratio !== devicePixelRatio) {
+        style.maxHeight = parseInt(style.maxHeight) * ratio + 'px';
+        self.onresize = null;
+      }
+    };
+  }
+  /* Popup is auto-sized by the browser, so we force it to expand to extract the maximum height.
+   * Doing it at startup helps avoid glitchy re-adjustments later. */
+  style.height = screen.height + 'px';
+  new IntersectionObserver(([e], obs) => {
+    obs.disconnect();
+    // rootBounds may be 0 in old Firefox, so we'll use clientHeight as fallback
+    style.maxHeight = ((e.rootBounds.height | 0) || document.documentElement.clientHeight) + 'px';
+    style.height = '';
+  }).observe($el);
   focusMe($el);
   keyboardService.enable();
   keyboardService.register('escape', () => {

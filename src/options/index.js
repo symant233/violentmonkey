@@ -8,7 +8,7 @@ import options from '@/common/options';
 import { render } from '@/common/ui';
 import '@/common/ui/favicon';
 import '@/common/ui/style';
-import { performSearch, store } from './utils';
+import { kDescription, kName, kStorageSize, performSearch, store } from './utils';
 import App from './views/app';
 
 // Same order as getSizes and sizesPrefixRe
@@ -32,16 +32,17 @@ render(App);
 function initScript(script, sizes, code) {
   const $cache = script.$cache || (script.$cache = {});
   const meta = script.meta || {};
-  const localeName = getLocaleString(meta, 'name');
+  const { custom } = script;
+  const localeName = getLocaleString(meta, kName);
   const desc = [
-    meta.name,
+    meta[kName],
     localeName,
-    meta.description,
-    getLocaleString(meta, 'description'),
-    script.custom.name,
-    script.custom.description,
+    meta[kDescription],
+    getLocaleString(meta, kDescription),
+    custom[kName],
+    custom[kDescription],
   ]::trueJoin('\n');
-  const name = script.custom.name || localeName;
+  const name = custom[kName] || localeName;
   let total = 0;
   let str = '';
   sizes.forEach((val, i) => {
@@ -51,10 +52,11 @@ function initScript(script, sizes, code) {
   $cache.desc = desc;
   $cache.name = name;
   $cache.lowerName = name.toLocaleLowerCase();
-  $cache.tags = script.custom.tags || '';
+  $cache.tags = custom.tags || '';
   $cache.size = formatByteLength(total, true).replace(' ', '');
   $cache.sizes = str.slice(0, -1).replace(/\x20/g, '\xA0').replace(/[^B]$/gm, '$&B');
   $cache.sizeNum = total;
+  $cache[kStorageSize] = sizes[2];
   if (code) $cache.code = code;
   script.$canUpdate = getScriptUpdateUrl(script)
     && (script.config.shouldUpdate ? 1 : -1 /* manual */);
@@ -63,15 +65,15 @@ function initScript(script, sizes, code) {
 
 export function loadData() {
   const id = +store.route.paths[1];
-  return requestData(id ? [id] : null)
+  return requestData(id)
   .catch(id && (() => requestData()));
   /* Catching in order to retry without an id if the id is invalid.
    * Errors will be shown in showUnhandledError. */
 }
 
-async function requestData(ids) {
+async function requestData(id) {
   const [data] = await Promise.all([
-    sendCmdDirectly('GetData', { ids, sizes: true }, { retry: true }),
+    sendCmdDirectly('GetData', { id, sizes: true }, { retry: true }),
     options.ready,
   ]);
   const { [SCRIPTS]: allScripts, sizes, ...auxData } = data;

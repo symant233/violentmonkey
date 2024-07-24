@@ -7,6 +7,7 @@ buttonCancel:
 buttonCheckForUpdates:
   description: Button to check a script for updates.
   message: 检查更新
+  touched: false
 buttonClose:
   description: Button to close window.
   message: 关闭
@@ -108,6 +109,7 @@ buttonUpdate:
 buttonUpdateAll:
   description: Check all scripts for updates.
   message: 全部更新
+  touched: false
 buttonVacuum:
   description: Button to vacuum extension data.
   message: 整理数据库
@@ -420,6 +422,9 @@ labelHomepage:
 labelHomepageURL:
   description: Label of script @homepageURL in custom meta data.
   message: 主页地址：
+labelIconURL:
+  description: Label for the input.
+  message: ''
 labelImportScriptData:
   description: Option to import script data along with scripts.
   message: 导入脚本数据
@@ -943,6 +948,15 @@ updateListedCmd:
     Command to update scripts e.g. in the extension popup, number of scripts in
     parentheses.
   message: 更新脚本（$1）
+updateScript:
+  description: Button to update one script.
+  message: 更新
+updateScriptsAll:
+  description: Command/button to update all scripts.
+  message: ''
+updateScriptsInTab:
+  description: Command/button to update scripts that run in current tab.
+  message: ''
 valueLabelKey:
   description: Label for key of a script value.
   message: 键名（字符串）

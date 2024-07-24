@@ -30,7 +30,7 @@
                 />
               </template>
             </Dropdown>
-            <Tooltip :content="i18n('buttonUpdateAll')" placement="bottom" align="start">
+            <Tooltip :content="i18n('updateScriptsAll')" placement="bottom" align="start">
               <a class="btn-ghost" tabindex="0" @click="handleActionUpdate(null, $event.target)">
                 <Icon name="refresh" />
               </a>
@@ -94,7 +94,7 @@
         </Dropdown>
         <!-- form and id are required for the built-in autocomplete using entered values -->
         <form class="filter-search hidden-xs" @submit.prevent
-              :style="{ 'max-width': 5 + Math.max(20, state.search.value.length) + 'ex' }">
+              :style="{ 'min-width': '10em', 'max-width': 5 + Math.max(20, state.search.value.length) + 'ex' }">
           <label>
             <input
               type="search"
@@ -269,6 +269,7 @@ let narrowMediaRules;
 const refSearch = ref();
 const refList = ref();
 const scroller = ref();
+const kScrollTop = 'scrollTop';
 
 const state = reactive({
   focusedIndex: -1,
@@ -398,7 +399,7 @@ async function handleInstallFromURL() {
       await sendCmdDirectly('ConfirmInstall', { url });
     }
   } catch (err) {
-    if (err) showMessage({ text: err });
+    showMessage({ text: err.message || err });
   }
 }
 async function moveScript(from, to) {
@@ -449,8 +450,13 @@ async function onHashChange() {
   // Workaround for bug in Chrome, not suppressible via overflow-anchor:none
   if (!IS_FIREFOX) {
     const el = scroller.value;
-    const pos = el.scrollTop;
-    nextTick(() => { el.scrollTop = pos; });
+    const el2 = document.scrollingElement; // for compact layout
+    const pos = el[kScrollTop];
+    const pos2 = el2[kScrollTop];
+    nextTick(() => {
+      el[kScrollTop] = pos;
+      el2[kScrollTop] = pos2;
+    });
   }
 }
 async function renderScripts() {
@@ -811,8 +817,13 @@ $iconSize: 2rem; // from .icon in ui/style.css
   .vl-dropdown-menu {
     white-space: nowrap;
   }
-  @media (max-width: 500px) { // same size as `hidden-sm` in @/common/ui/style/style.css
-    .vl-dropdown-right .vl-dropdown-menu {
+  @media (max-width: 550px) { // same size as `hidden-sm` in @/common/ui/style/style.css
+    /* The header bar must be set to scrollable and the dropdown fixed simultaneously. */
+    header {
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+    .vl-dropdown-menu {
       position: fixed;
       top: auto;
       left: 0;

@@ -1,23 +1,13 @@
 import bridge from './bridge';
-import { GM_API, gmGetResourceURL, gmXmlHttpRequest } from './gm-api';
+import { GM4_ALIAS, GM_API, GM_API_CTX, GM_API_CTX_GM4ASYNC } from './gm-api';
 import { makeGlobalWrapper } from './gm-global-wrapper';
 import { makeComponentUtils, safeAssign } from './util';
 
-/** Name in Greasemonkey4 -> name in GM, all methods are context-bound */
-const GM4_ALIAS = {
-  __proto__: null,
-  getResourceUrl: gmGetResourceURL,
-  xmlHttpRequest: gmXmlHttpRequest,
-};
-/** Also includes GM4_ALIAS */
-const GM4_ASYNC = {
-  __proto__: null,
-  download: 1,
-  getValue: 1,
-  deleteValue: 1,
-  setValue: 1,
-  listValues: 1,
-};
+/** @type {(keyof VMInjection.Script)[]} */
+const COPY_SCRIPT_PROPS = [
+  'displayName',
+  'id',
+];
 const componentUtils = makeComponentUtils();
 const sendTabClose = () => bridge.post('TabClose');
 const sendTabFocus = () => bridge.post('TabFocus');
@@ -29,17 +19,15 @@ const sendTabFocus = () => bridge.post('TabFocus');
 export function makeGmApiWrapper(script) {
   // Add GM functions
   // Reference: http://wiki.greasespot.net/Greasemonkey_Manual:API
-  const { id, meta } = script;
+  const { meta } = script;
   const { grant } = meta;
   const resources = setPrototypeOf(meta.resources, null);
   /** @type {GMContext} */
-  const context = {
-    __proto__: null, // necessary for optional props like `async`
-    id,
-    script,
+  const context = safePickInto({
     resources,
     resCache: createNullObj(),
-  };
+    async: false,
+  }, script, COPY_SCRIPT_PROPS);
   const gmInfo = makeGmInfo(script.gmi, meta, resources);
   const gm4 = {
     __proto__: null,
@@ -61,12 +49,13 @@ export function makeGmApiWrapper(script) {
   for (let name of grant) {
     let fn, fnGm4, gmName, gm4name;
     if (name::slice(0, 3) === 'GM.' && (gm4name = name::slice(3)) && (fnGm4 = GM4_ALIAS[gm4name])
-    || (fn = GM_API.bound[gmName = gm4name ? `GM_${gm4name}` : name])) {
+    || (fn = GM_API_CTX[gmName = gm4name ? `GM_${gm4name}` : name])
+    || (fn = GM_API_CTX_GM4ASYNC[gmName]) && (!gm4name || (fnGm4 = fn))) {
       fn = safeBind(fnGm4 || fn,
-        fnGm4 || gm4name in GM4_ASYNC
-          ? contextAsync || (contextAsync = assign(createNullObj(), { async: true }, context))
+        fnGm4
+          ? contextAsync || (contextAsync = assign(createNullObj(), context, { async: true }))
           : context);
-    } else if (!(fn = GM_API.free[gmName]) && (
+    } else if (!(fn = GM_API[gmName]) && (
       fn = name === 'window.close' && sendTabClose
         || name === 'window.focus' && sendTabFocus
     )) {

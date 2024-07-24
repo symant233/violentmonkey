@@ -7,6 +7,7 @@ buttonCancel:
 buttonCheckForUpdates:
   description: Button to check a script for updates.
   message: Kiểm tra cập nhật
+  touched: false
 buttonClose:
   description: Button to close window.
   message: Đóng
@@ -80,7 +81,7 @@ buttonReset:
   message: Thiết lập lại
 buttonResetSettings:
   description: Button in settings page to reset all settings
-  message: ''
+  message: Đặt lại cài đặt
 buttonRestore:
   description: Button to restore a removed script.
   message: Khôi phục
@@ -108,6 +109,7 @@ buttonUpdate:
 buttonUpdateAll:
   description: Check all scripts for updates.
   message: Kiểm tra cập nhật tất cả
+  touched: false
 buttonVacuum:
   description: Button to vacuum extension data.
   message: Làm trống dữ liệu
@@ -131,7 +133,9 @@ confirmUndoImport:
   description: >-
     Tooltip of the Undo button after importing a zip in settings. The same text
     is also shown as a confirmation dialog after clicking this button.
-  message: ''
+  message: >-
+    Hoàn nguyên tất cả các thay đổi được thực hiện cho cơ sở dữ liệu (nhập, cập
+    nhật, chỉnh sửa, tùy chỉnh)
 descBlacklist:
   description: HTML Description for the global blacklist.
   message: URL trong danh sách này sẽ không bị bỏ qua.
@@ -150,7 +154,11 @@ descEditorOptions:
     rel="noopener noreferrer">Xem chi tiết.</a>
 descEditorOptionsGeneric:
   description: Description of editor options in VM settings.
-  message: ''
+  message: >-
+    Các tùy chọn Boolean có thể được bật bằng cách nhấp đúp vào giá trị
+    <code>true</code> = enabled, <code>false</code> = disabled. Tùy chọn số kết
+    thúc bằng <code>Delay</code>, <code>Interval</code>, <code>Rate</code>,
+    <code>Time</code> tính bằng mili giây.
 descEditorOptionsVM:
   description: Description of nonstandard editor options in VM settings.
   message: ''
@@ -218,7 +226,9 @@ failureReasonNoninjectable:
   message: Violentmonkey không hoạt động ở đây.
 failureReasonRestarted:
   description: Shown in the popup.
-  message: ''
+  message: >-
+    Violentmonkey đã được khởi động lại. Vui lòng tải lại tab để chạy
+    userscripts.
 fileInstallBlocked:
   description: Text in the installer when a local file is dropped into the browser window.
   message: >-
@@ -334,7 +344,7 @@ labelBackup:
   touched: false
 labelBackupMaintenance:
   description: Label of the import/export/maintenance section in settings.
-  message: ''
+  message: Sao lưu và bảo trì
 labelBadge:
   description: Label for option to show number on badge.
   message: 'Hiển thị ở huy hiệu: '
@@ -427,6 +437,9 @@ labelHomepage:
 labelHomepageURL:
   description: Label of script @homepageURL in custom meta data.
   message: 'Liên kết trang chủ:'
+labelIconURL:
+  description: Label for the input.
+  message: ''
 labelImportScriptData:
   description: Option to import script data along with scripts.
   message: Nhập dữ liệu script
@@ -750,12 +763,12 @@ msgNoUpdate:
   message: Không có cập nhật mới.
 msgOpenUpdateErrors:
   description: Shown at the beginning of a notification (Chrome) or in its title (Firefox).
-  message: ''
+  message: Lỗi cập nhật tập lệnh. Nhấn vào đây để mở chúng.
 msgReinstallScripts:
   description: >-
     Notification body shown for a missing @require or other resource when
     running such scripts.
-  message: ''
+  message: 'Vui lòng lưu lại hoặc cài đặt lại (các) tập lệnh này:'
 msgSameCode:
   description: Shown inside the title when re-installing a script that's already installed.
   message: ' (mã nguồn không đổi)'
@@ -801,10 +814,15 @@ msgSyncing:
   message: Đang đồng bộ...
 msgSyntaxError:
   description: Shown in popup when a script didn't run and we don't know the exact reason.
-  message: ''
+  message: Lỗi cú pháp?
 msgTardyMatch:
   description: Shown in popup for scripts that missed their chance to run.
-  message: ''
+  message: >-
+    Tập lệnh không tồn tại hoặc không khớp với URL khi trang được tải, điều này
+    xảy ra trong các trang Ứng dụng một trang như fb hoặc instagram đang sử dụng
+    điều hướng giả mạo. Bạn có thể tải lại tab để chạy tập lệnh. Để sửa tập
+    lệnh, hãy sử dụng @match cho toàn bộ trang web, sau đó phát hiện các thay
+    đổi bằng MutationObserver hoặc API window.navigation.
 msgUpdated:
   description: Message shown when a script is updated/reinstalled.
   message: Đã cập nhật script.
@@ -879,7 +897,7 @@ readonlyOptWarn:
   message: ''
 reinstall:
   description: Button to reinstall a script
-  message: ''
+  message: Cài đặt lại
 reloadTab:
   description: Label of action to reload the tab
   message: ''
@@ -945,6 +963,15 @@ updateListedCmd:
   description: >-
     Command to update scripts e.g. in the extension popup, number of scripts in
     parentheses.
+  message: ''
+updateScript:
+  description: Button to update one script.
+  message: Cập nhật
+updateScriptsAll:
+  description: Command/button to update all scripts.
+  message: ''
+updateScriptsInTab:
+  description: Command/button to update scripts that run in current tab.
   message: ''
 valueLabelKey:
   description: Label for key of a script value.

@@ -90,7 +90,7 @@
           </tooltip>
           <tooltip
             :disabled="!script.$canUpdate || script.checking"
-            :content="i18n('buttonCheckForUpdates')"
+            :content="i18n('updateScript')"
             align="start">
             <a
               class="btn-ghost"
@@ -154,7 +154,7 @@ import {
 import { getActiveElement, showConfirmation } from '@/common/ui';
 import Icon from '@/common/ui/icon';
 import { keyboardService, isInput, toggleTip } from '@/common/keyboard';
-import { store } from '../utils';
+import { kDescription, store } from '../utils';
 
 const itemMargin = 8;
 
@@ -198,7 +198,7 @@ export default {
       return this.script.config.enabled ? this.i18n('buttonDisable') : this.i18n('buttonEnable');
     },
     description() {
-      return this.script.custom.description || getLocaleString(this.script.meta, 'description');
+      return this.script.custom[kDescription] || getLocaleString(this.script.meta, kDescription);
     },
     updatedAt() {
       const { props, config } = this.script;
@@ -481,7 +481,7 @@ $removedItemHeight: calc(
     min-width: 4em;
     > .ellipsis {
       display: inline-block;
-      max-width: 100px;
+      max-width: 15ch;
     }
   }
   &-message {
@@ -558,7 +558,7 @@ $removedItemHeight: calc(
         auto /* main icons */
         auto /* trash icon */
         $iconSize /* script icon */
-        1fr /* name */
+        minmax(15ch, 1fr) /* name */
         auto /* info */;
       align-items: center;
       height: 2.5rem;
@@ -623,9 +623,6 @@ $removedItemHeight: calc(
       }
       &.removed .script-buttons .sep {
         display: none;
-      }
-      &-author > .ellipsis {
-        max-width: 15vw;
       }
       &-message {
         position: absolute;
