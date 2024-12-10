@@ -17,8 +17,7 @@
          class="text-upper text-right text-red"/>
       <div v-else class="edit-hint text-right ellipsis">
         <a :href="externalEditorInfoUrl"
-           target="_blank"
-           rel="noopener noreferrer"
+           v-bind="EXTERNAL_LINK_PROPS"
            v-text="i18n('editHowToHint')"/>
       </div>
       <div class="mr-1">
@@ -34,7 +33,7 @@
     <div class="frozen-note shelf mr-2c flex flex-wrap" v-if="frozenNote && nav === 'code'">
       <p v-text="i18n('readonlyNote')"/>
       <keep-alive>
-        <VMSettingsUpdate class="flex ml-2c" :script="script"/>
+        <VMSettingsUpdate class="flex ml-2c" :script/>
       </keep-alive>
     </div>
 
@@ -51,7 +50,7 @@
       ref="$code"
       v-show="nav === 'code'"
       :active="nav === 'code'"
-      :commands="commands"
+      :commands
       @code-dirty="codeDirty = $event"
     />
     <keep-alive ref="$tabBody">
@@ -73,7 +72,7 @@
     <vm-help
       class="edit-body"
       v-else-if="nav === 'help'"
-      :hotkeys="hotkeys"
+      :hotkeys
     />
     </keep-alive>
 
@@ -82,9 +81,11 @@
         <code v-text="hashPattern"/>
       </locale-group>
       <p v-for="e in errors" :key="e" v-text="e" class="text-red"/>
-      <p class="my-1" v-if="errors">
-        <a :href="urlMatching" target="_blank" rel="noopener noreferrer" v-text="urlMatching"/>
-      </p>
+      <template v-if="errors">
+        <p class="my-1" v-for="url in errorsLinks" :key="url">
+          <a :href="url" v-bind="EXTERNAL_LINK_PROPS" v-text="url"/>
+        </p>
+      </template>
     </div>
   </div>
 </template>
@@ -95,17 +96,18 @@ import {
   debounce, formatByteLength, getScriptName, getScriptUpdateUrl, i18n, isEmpty,
   nullBool2string, sendCmdDirectly, trueJoin,
 } from '@/common';
+import { ERR_BAD_PATTERN, VM_DOCS_MATCHING, VM_HOME } from '@/common/consts';
 import { deepCopy, deepEqual, objectPick } from '@/common/object';
 import { externalEditorInfoUrl, focusMe, getActiveElement, showMessage } from '@/common/ui';
 import { keyboardService } from '@/common/keyboard';
 import options from '@/common/options';
 import { getUnloadSentry } from '@/common/router';
+import { EXTERNAL_LINK_PROPS } from '@/common/ui';
 import {
   kDownloadURL, kExclude, kExcludeMatch, kHomepageURL, kIcon, kInclude, kMatch, kName, kOrigExclude, kOrigExcludeMatch,
   kOrigInclude, kOrigMatch, kUpdateURL,
 } from '../../utils';
 
-const urlMatching = 'https://violentmonkey.github.io/api/matching/';
 const CUSTOM_PROPS = {
   [kName]: '',
   [kHomepageURL]: '',
@@ -191,6 +193,15 @@ const commands = {
 };
 const hotkeys = ref();
 const errors = ref();
+const errorsLinks = computed(() => {
+  let patterns = 0;
+  const errorsValue = errors.value;
+  for (const e of errorsValue) if (e.startsWith(ERR_BAD_PATTERN)) patterns++;
+  return [
+    patterns < errorsValue.length && `${VM_HOME}api/metadata-block/`,
+    patterns && VM_DOCS_MATCHING,
+  ].filter(Boolean);
+});
 const hashPattern = computed(() => { // eslint-disable-line vue/return-in-computed-property
   for (const sectionKey of ['meta', 'custom']) {
     for (const key of CUSTOM_LISTS) {
@@ -235,22 +246,28 @@ watch(canSave, val => {
   toggleUnloadSentry(val);
   keyboardService.setContext('canSave', val);
 });
-// usually errors for resources
-watch(() => props.initial.error, error => {
-  if (error) {
-    showMessage({ text: `${props.initial.message}\n\n${error}` });
-  }
-});
 watch(codeDirty, onDirty);
 watch(script, onScript);
 
 {
   // The eslint rule is bugged as this is a block scope, not a global scope.
-  const src = props.initial; // eslint-disable-line vue/no-setup-props-destructure
-  code.value = props.initialCode; // eslint-disable-line vue/no-setup-props-destructure
+  const src = props.initial;
+  const initialCode = code.value = props.initialCode;
   script.value = deepCopy(src);
+  sendCmdDirectly('ParseMetaErrors', initialCode).then(res => {
+    errors.value = res;
+  });
   watch(() => script.value.config, onChange, { deep: true });
   watch(() => script.value.custom, onChange, { deep: true });
+  watch(() => src.error, error => {
+    // usually errors for resources
+    if (error) showMessage({ text: `${src.message}\n\n${error}` });
+  });
+  watch(() => src.config.enabled, val => {
+    // script was toggled externally in the popup/dashboard/sync
+    script.value.config.enabled = val;
+    if (savedCopy) savedCopy.config.enabled = val;
+  });
 }
 
 onMounted(() => {

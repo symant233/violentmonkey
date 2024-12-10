@@ -137,8 +137,13 @@ confirmUndoImport:
     Återställ alla ändringar som gjorts i databasen (importering, uppdatering,
     redigering, anpassning)
 descBlacklist:
-  description: HTML Description for the global blacklist.
-  message: Webbadress som matchas i den här listan kommer inte att injiceras av skript.
+  description: Description for the global injection blacklist.
+  message: Injektionssvartlista (skript körs inte på matchande webbplatser)
+descBlacklistNet:
+  description: Description for the global network blacklist.
+  message: >-
+    Nätverkssvartlista (skript ansluter inte till matchande webbplatser och
+    deras cookies)
 descCustomCSS:
   description: Description of custom CSS section.
   message: >-
@@ -146,18 +151,45 @@ descCustomCSS:
     säker på vad detta är till för, ändra inget.
 descEditorOptions:
   description: Description of editor options JSON section.
-  message: ''
+  message: >-
+    Anpassade alternativ för CodeMirror och tillägg i JSON-objekt som
+    <code>{"indentUnit":2, "smartIndent":true}</code> Observera att vissa av dem
+    kanske inte fungerar i Violentmonkey. Se <a
+    href="https://codemirror.net/doc/manual.html#config" target="_blank"
+    rel="noopener noreferrer">full lista</a>.
 descEditorOptionsGeneric:
   description: Description of editor options in VM settings.
-  message: ''
+  message: >-
+    Booleska alternativ kan växlas genom att dubbelklicka på värdet:
+    <code>true</code> = aktiverad, <code>false</code> = inaktiverad. Numeriska
+    alternativ som slutar med <code>fördröjning</code>, <code>intervall</code>,
+    <code>värde</code> eller <code>tid</code> är i millisekunder.
 descEditorOptionsVM:
   description: Description of nonstandard editor options in VM settings.
-  message: ''
+  message: >-
+    Icke-standardiserade alternativ: <code>autocompleteOnTyping</code> är en
+    fördröjning i millisekunder för att visa autoslutförande tips efter att ha
+    skrivit klart (<code>0</code> = inaktivera),
+    <code>killTrailingSpaceOnSave</code> tar automatiskt bort efterföljande
+    mellanslag i varje rad när du sparar, <code>showTrailingSpace</code> visar
+    de efterföljande mellanslagen som punkter.
 descScriptTemplate:
   description: Description of script template section.
   message: >-
     Variabler som stöds: <{{name}}>, <{{url}}>, <{{date}}>, <{{date:format}}>
     med MomentJS-kompatibelt format, för exempel <{{date:YYYY-MM-DD}}>.
+disabledScriptsGroup:
+  description: 'Used as "Disabled scripts: group"'
+  message: grupp
+disabledScriptsHide:
+  description: 'Used as "Disabled scripts: hide"'
+  message: dölj
+disabledScriptsSelector:
+  description: Label of the option.
+  message: 'Inaktiverade skript:'
+disabledScriptsShow:
+  description: 'Used as "Disabled scripts: show"'
+  message: visa
 editHelpDocumention:
   description: Label in the editor help tab for the documentation link.
   message: 'Dokumentation om användarskriptmetadatablock och <code>GM</code> API:'
@@ -233,10 +265,10 @@ fileInstallBlocked:
     Detta är farligt eftersom alla användarskript kan läsa alla lokala filer.
 filterAlphabeticalOrder:
   description: Label for option to sort scripts in alphabetical order.
-  message: alfabetisk ordning
+  message: alfabetisk
 filterExecutionOrder:
   description: Label for option to sort scripts in execution order.
-  message: exekutionsorder
+  message: exekution
 filterLastUpdateOrder:
   description: Label for option to sort scripts by last update time.
   message: senaste uppdateringstid
@@ -344,7 +376,7 @@ labelBackupMaintenance:
   message: Säkerhetskopiera och underhåll
 labelBadge:
   description: Label for option to show number on badge.
-  message: 'Visas på brickan: '
+  message: 'Bricka:'
 labelBadgeColors:
   description: Label for option group to set badge colors.
   message: 'Brickfärger: '
@@ -413,13 +445,14 @@ labelFastFirefoxInject:
   message: Alternativt $1-läge i Firefox
 labelFastFirefoxInjectHint:
   description: Tooltip hint for the option in Advanced settings.
-  message: ''
+  message: >-
+    En alternativ injektionsmetod för <document-start> skript sedan Firefox 59,
+    snabbare än standardläget. På samma sätt som "Synkront sidläge" ökar det
+    också minnesförbrukningen, så du kanske vill inaktivera det om dina skript
+    fungerar korrekt utan detta alternativ.
 labelFeedback:
   description: Label of link to feedback page.
   message: Återkoppling
-labelFilterSort:
-  description: Label for sort filter.
-  message: Sortera efter $1
 labelGeneral:
   description: Label for general settings.
   message: Allmänt
@@ -434,7 +467,7 @@ labelHomepageURL:
   message: Hemsidans webbadress
 labelIconURL:
   description: Label for the input.
-  message: ''
+  message: 'Ikonens webbadress:'
 labelImportScriptData:
   description: Option to import script data along with scripts.
   message: Importera skriptdata
@@ -487,10 +520,7 @@ labelNotifyUpdates:
   message: Visa meddelande om skriptuppdateringar
 labelNotifyUpdatesGlobal:
   description: Option to prioritize global notification option over script's setting.
-  message: ''
-labelPopupSort:
-  description: Label in the VM settings tab for script list sort order in popup
-  message: Sortera skript i popup-fönster efter $1
+  message: ignorera avisering per skript ("inställningar" i redigeraren)
 labelPrivacyPolicy:
   description: Label of link to privacy policy
   message: Integritetspolicy
@@ -587,6 +617,9 @@ labelViewSingleColumn:
 labelViewTable:
   description: Label for option in dashboard script list to show the scripts as a table.
   message: Tabellvy
+labelWidth:
+  description: Width.
+  message: 'Bredd:'
 labelXhrInject:
   description: >-
     (`$1` will be shown as `page`) Option in Advanced settings to enable
@@ -594,7 +627,14 @@ labelXhrInject:
   message: Synkront $1-läge
 labelXhrInjectHint:
   description: Tooltip of the `Synchronous page mode` option in Advanced settings.
-  message: ''
+  message: >-
+    Aktivera endast om du har ett skript som måste köras innan sidan börjar
+    laddas och för närvarande körs för sent. Precis som omedelbart
+    injektionsläge i Tampermonkey använder det här alternativet den föråldrade
+    synkrona XHR, så i Chrome/Chromium kommer du att se varningar i
+    devtools-konsolen, även om du säkert kan ignorera dem eftersom de negativa
+    effekterna är försumbara i det här fallet. Du kan dölja varningarna för gott
+    genom att högerklicka på en.
 labelXhrInjectNote:
   description: Shown to the right of "synchronous page mode" in options.
   message: (förutom inkognito och webbplatser med inaktiverade cookies)
@@ -621,7 +661,13 @@ menuExclude:
   message: Uteslut...
 menuExcludeHint:
   description: Shown in popup menu after clicking "Exclude..." in script's "..." dropdown.
-  message: ''
+  message: >-
+    Den aktuella fliken kommer att laddas om automatiskt om du aktiverade det
+    här alternativet i allmänna inställningar.
+
+    För att verkställa ändringar på alla andra flikar, ladda om dem manuellt.
+
+    Använd fliken "Inställningar" i redigeraren för mer flexibilitet.
 menuFeedback:
   description: >-
     Menu item in popup to open the selected script's feedback page. Please use a
@@ -724,7 +770,11 @@ msgNamespaceConflict:
   description: >-
     Message shown when namespace of the new script conflicts with an existent
     one.
-  message: ''
+  message: >-
+    Ett sådant skript är redan installerat.
+
+    Använd antingen ett annat @namn och @namnutrymme här eller redigera det
+    skriptet i stället.
 msgNamespaceConflictRestore:
   description: >-
     Message shown when namespace of the script to restore from recycle bin
@@ -794,7 +844,12 @@ msgSyntaxError:
   message: Syntaxfel?
 msgTardyMatch:
   description: Shown in popup for scripts that missed their chance to run.
-  message: ''
+  message: >-
+    Skriptet fanns inte eller matchade inte webbadressen när sidan laddades,
+    vilket händer på ensidiga applikationswebbplatser som Facebook eller
+    Instagram som använder falsk navigering. Du kan ladda om fliken för att köra
+    skriptet. För att fixa skriptet använd @match för hela webbplatsen och
+    upptäck sedan ändringar med MutationObserver eller window.navigation-API.
 msgUpdated:
   description: Message shown when a script is updated/reinstalled.
   message: Skript uppdaterad.
@@ -806,7 +861,7 @@ noValues:
   message: Inget lagrat värde
 optionEditorWindow:
   description: Label for the option in settings
-  message: ''
+  message: Öppna redigeraren från popup i ett nytt fönster
 optionEditorWindowHint:
   description: >-
     Tooltip for optionEditorWindow in case the browser doesn't support
@@ -826,15 +881,18 @@ optionPopupEnabledFirst:
 optionPopupGroupDisabled:
   description: Option to group disabled scripts in popup.
   message: Gruppera inaktiverade skript
+  touched: false
 optionPopupGroupRunAt:
   description: Option to group scripts in popup shown only when sorting by execution order.
   message: Gruppera efter @körskede
 optionPopupHideDisabled:
   description: Option to hide disabled scripts in popup.
   message: Dölj inaktiverade skript
+  touched: false
 optionPopupShowDisabled:
   description: Option to show disabled scripts in popup.
   message: Visa inaktiverade skript
+  touched: false
 optionShowEnabledFirst:
   description: Option to show enabled scripts first in alphabetical order.
   message: Visa aktiverade skript först
@@ -855,6 +913,12 @@ optionUpdate:
     Label of the update section in settings and notification title for script
     updates.
   message: Uppdatera
+popupSettings:
+  description: Item inside the popup's "⋮" menu
+  message: Popup-inställningar
+popupSettingsHint:
+  description: Hint for the config button in the popup
+  message: 'Högerklick: popup-inställningar'
 readonly:
   description: Text in the editor's header for non-editable scripts.
   message: Skrivskyddad
@@ -911,6 +975,9 @@ skipScriptsMsg:
   message: >-
     Du har inaktiverat användarskript för den här sidan. För att köra dem, ladda
     om eller navigera på fliken.
+sortOrder:
+  description: Label for the script sort order in dashboard, settings, popup settings.
+  message: 'Sorteringsordning:'
 stopTracking:
   description: Button in a script installation dialog when actually tracking local file.
   message: Sluta spåra
@@ -928,6 +995,28 @@ titleSearchHintV2:
   description: >-
     Hover title for search icon in dashboard. Do not translate content between
     <code>...</code>.
+  message: >-
+    * <kbd>Returtangenten</kbd> lägger till texten i historiken för
+    autoslutförande
+
+    * Alla villkor är skiftlägesokänsliga
+
+    * Utrymmesseparerade förhållanden kan kombineras
+
+    * Sök efter metadata: <code>"skriptnamn" "beskrivning"</code>
+
+    * Sök efter taggar: <code>#tagg1 #tagg2</code>
+
+    * Sök efter skriptnamn: <code>name:"skriptnamn"</code>
+
+    * Sök efter skriptkod: <code>code:"kod i skriptet"</code>
+
+    * Negativ sökning: <code>!#tagg2 !name:"oönskat skript"</code>
+
+    * Reguljära uttryck: <code>/\w+?/</code>, <code>/\w+?/gi</code>,
+    <code>name:/\w+?/</code>, <code>name+re:"\w+? med mellanslag"</code>
+toggleInjection:
+  description: Label for a keyboard shortcut.
   message: ''
 trackEdits:
   description: Button in a script installation dialog.
@@ -945,10 +1034,10 @@ updateScript:
   message: Uppdatera
 updateScriptsAll:
   description: Command/button to update all scripts.
-  message: ''
+  message: Uppdatera alla skript
 updateScriptsInTab:
   description: Command/button to update scripts that run in current tab.
-  message: ''
+  message: Uppdatera nuvarande fliks skript
 valueLabelKey:
   description: Label for key of a script value.
   message: Nyckel (sträng)

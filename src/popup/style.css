@@ -21,6 +21,9 @@ $DARKhoverColor: var(--fill-15);
 $DARKhoverBack: #404c5c;
 $DARKhoverButtonInactiveBack: #5b6979;
 
+html {
+  scrollbar-width: none; /* Vivaldi: preventing the full-body scrollbar before size-adjustment kicks in */
+}
 body {
   width: 320px;
   max-width: 100%;
@@ -109,6 +112,23 @@ footer {
   }
 }
 
+.script-name {
+  /* expand right-click-to-edit area */
+  flex: 1;
+  align-self: stretch;
+  align-items: center;
+  display: flex;
+  .tardy {
+    margin-left: .5rem;
+    color: red;
+    .icon {
+      width: 16px;
+      height: 16px;
+      vertical-align: text-bottom;
+    }
+  }
+}
+
 .menu-buttons {
   align-items: center;
   padding: $padding $padding $padding 0;
@@ -134,6 +154,7 @@ footer {
   &-item {
     position: relative;
     display: flex;
+    flex-wrap: wrap; /* the update notice must go to the next row */
     align-items: center;
     min-height: 2rem;
     padding-left: $itemPaddingX;
@@ -254,6 +275,7 @@ footer {
     font-size: .8rem;
     color: var(--fill-12);
     > .menu-item {
+      min-height: 1.5rem;
       padding-left: $leftPaneWidth;
       > .icon {
         margin-right: .5rem;
@@ -275,20 +297,28 @@ footer {
   border: 1px solid var(--fill-2);
   max-height: $footerHeight;
   overflow: hidden;
-  &[data-tall] {
-    overflow-y: auto;
-    max-height: 50vh;
-  }
+  white-space: pre-wrap;
 }
 
 .failure-reason {
   padding: .5rem $itemPaddingX .5rem $leftPaneWidth;
-  .page-popup:not(.noninjectable):not(.blacklisted) & {
-    // Making the warning noticeable at the bottom of the script list
-    background: hsla(30, 100%, 50%, .2);
-  }
   code {
     max-width: 100%;
+  }
+  &.note {
+    font-size: smaller;
+    padding-left: $iconML;
+    hyphens: auto;
+  }
+}
+
+.page-popup:not(.noninjectable):not(.blacklisted) {
+  .failure-reason {
+    // Making the warning noticeable
+    background: hsla(30, 100%, 50%, .2);
+  }
+  .settings {
+    background: none;
   }
 }
 
@@ -372,6 +402,11 @@ footer {
   &::after {
     content: attr(title);
   }
+}
+
+.settings {
+  padding: 1em;
+  overflow-y: auto;
 }
 
 .syntax {

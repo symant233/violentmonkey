@@ -3,12 +3,13 @@ import { sendCmdDirectly } from '@/common';
 import handlers from '@/common/handlers';
 import { loadScriptIcon } from '@/common/load-script-icon';
 import { mapEntry } from '@/common/object';
-import { render } from '@/common/ui';
+import { isTouch, render } from '@/common/ui';
 import '@/common/ui/style';
 import App from './views/app';
 import { emptyStore, store } from './utils';
 
 let mutex, mutexResolve, port;
+let hPrev;
 
 initialize();
 render(App);
@@ -84,6 +85,12 @@ async function setPopup(data, { [kFrameId]: frameId, url }) {
     });
   }
   if (isTop) mutexResolve(); // resolving at the end after all `await` above are settled
+  if (!hPrev) {
+    hPrev = Math.max(innerHeight, 100); // ignore the not-yet-resized popup e.g. in Firefox
+    window.onresize = onResize;
+    // Mobile browsers show the popup maximized to the entire screen, no resizing
+    if (isTouch && hPrev > document.body.clientHeight) onResize();
+  }
 }
 
 function initMutex(delay = 100) {
@@ -127,4 +134,20 @@ async function initialize() {
 function isMyTab(tab) {
   // No `tab` is a FF bug when it sends messages from removed iframes
   return tab && (!store.tab || store.tab.id === tab.id);
+}
+
+function onResize(evt) {
+  const h = innerHeight;
+  if (!evt
+  // ignoring intermediate downsize
+  || h > hPrev
+  // ignoring  initial devicePixelRatio which is based on page zoom in this extension's tabs
+    && document.readyState !== 'loading'
+  // ignoring off-by-1 e.g. due to clientHeight being fractional
+    && document.body.clientHeight - 1 > h
+  ) {
+    window.onresize = null;
+    store.maxHeight = h + 'px';
+  }
+  hPrev = h;
 }

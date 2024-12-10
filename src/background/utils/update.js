@@ -1,11 +1,14 @@
 import {
   compareVersion, ensureArray, getScriptName, getScriptUpdateUrl, i18n, sendCmd, trueJoin,
 } from '@/common';
-import { __CODE, METABLOCK_RE, NO_CACHE, TIMEOUT_24HOURS, TIMEOUT_MAX } from '@/common/consts';
+import {
+  __CODE, FETCH_OPTS, METABLOCK_RE, NO_CACHE, TIMEOUT_24HOURS, TIMEOUT_MAX,
+} from '@/common/consts';
 import { fetchResources, getScriptById, getScripts, notifyToOpenScripts, parseScript } from './db';
 import { addOwnCommands, commands, init } from './init';
 import { parseMeta } from './script';
 import { getOption, hookOptions, setOption } from './options';
+import { kUpdateEnabledScriptsOnly } from '@/common/options-defaults';
 import { requestNewer } from './storage-fetch';
 
 const processes = {};
@@ -14,6 +17,7 @@ const FAST_CHECK = {
   // Smart servers like OUJS send a subset of the metablock without code
   headers: { Accept: 'text/x-userscript-meta,*/*' },
 };
+const kChecking = 'checking';
 
 init.then(autoUpdate);
 hookOptions(changes => 'autoUpdate' in changes && autoUpdate());
@@ -30,15 +34,20 @@ addOwnCommands({
     const urlOpts = {
       all: true,
       allowedOnly: isAll,
-      enabledOnly: isAll && getOption('updateEnabledScriptsOnly'),
+      enabledOnly: isAll && getOption(kUpdateEnabledScriptsOnly),
     };
-    const opts = { [MULTI]: isAuto ? AUTO : isAll };
+    const opts = {
+      [FETCH_OPTS]: {
+        ...NO_CACHE,
+        [MULTI]: isAuto ? AUTO : isAll,
+      },
+    };
     const jobs = scripts.map(script => {
       const curId = script.props.id;
       const urls = getScriptUpdateUrl(script, urlOpts);
       return urls && (
         processes[curId] || (
-          processes[curId] = doCheckUpdate(script, urls, opts)
+          processes[curId] = doCheckUpdate(curId, script, urls, opts)
         )
       );
     }).filter(Boolean);
@@ -58,33 +67,25 @@ addOwnCommands({
   },
 });
 
-async function doCheckUpdate(script, urls, opts) {
-  const { id } = script.props;
+async function doCheckUpdate(id, script, urls, opts) {
   let res;
   let msgOk;
   let msgErr;
-  let resourceOpts;
   try {
     const { update } = await parseScript({
       id,
       code: await downloadUpdate(script, urls, opts),
-      update: { checking: false },
       bumpDate: true,
+      update: { [kChecking]: false },
+      ...opts,
     });
     msgOk = i18n('msgScriptUpdated', [getScriptName(update)]);
-    resourceOpts = { ...NO_CACHE };
     res = true;
   } catch (update) {
-    msgErr = update.error;
-    // Either proceed with normal fetch on no-update or skip it altogether on error
-    resourceOpts = !update.error && !update.checking && {};
+    msgErr = update.error
+      || !update[kChecking] && await fetchResources(script, opts);
     if (process.env.DEBUG) console.error(update);
   } finally {
-    if (resourceOpts) {
-      Object.assign(resourceOpts, opts);
-      msgErr = await fetchResources(script, null, resourceOpts);
-      if (process.env.DEBUG && msgErr) console.error(msgErr);
-    }
     if (canNotify(script) && (msgOk || msgErr)) {
       res = {
         script,
@@ -106,11 +107,11 @@ async function downloadUpdate(script, urls, opts) {
   announce(i18n('msgCheckingForUpdate'));
   try {
     const { data } = await requestNewer(updateURL, { ...FAST_CHECK, ...opts }) || {};
-    const { version, [__CODE]: metaStr } = data ? parseMeta(data, true) : {};
+    const { version, [__CODE]: metaStr } = data ? parseMeta(data, { retMetaStr: true }) : {};
     if (compareVersion(meta.version, version) >= 0) {
-      announce(i18n('msgNoUpdate'), { checking: false });
+      announce(i18n('msgNoUpdate'), { [kChecking]: false });
     } else if (!downloadURL) {
-      announce(i18n('msgNewVersion'), { checking: false });
+      announce(i18n('msgNewVersion'), { [kChecking]: false });
     } else if (downloadURL === updateURL && data?.replace(METABLOCK_RE, '').trim()) {
       // Code is present, so this is not a smart server, hence the response is the entire script
       announce(i18n('msgUpdated'));
@@ -127,10 +128,10 @@ async function downloadUpdate(script, urls, opts) {
     announce(errorMessage || i18n('msgErrorFetchingUpdateInfo'), { error });
   }
   throw update;
-  function announce(message, { error, checking = !error } = {}) {
+  function announce(message, { error, [kChecking]: checking = !error } = {}) {
     Object.assign(update, {
       message,
-      checking,
+      [kChecking]: checking,
       error: error ? `${i18n('genericError')} ${error.status}, ${error.url}` : null,
       // `null` is transferable in Chrome unlike `undefined`
     });

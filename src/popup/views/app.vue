@@ -1,6 +1,5 @@
 <template>
   <div
-    ref="$root"
     class="page-popup flex flex-col"
     @click="extras = topExtras = null"
     @click.capture="onOpenUrl"
@@ -8,6 +7,7 @@
     @mouseleave.capture="delegateMouseLeave"
     @focus.capture="updateMessage"
     :data-is-applied="optionsData.isApplied"
+    :style="{'max-height': store.maxHeight}"
     :class="store.failure">
     <div class="flex menu-buttons">
       <div class="logo">
@@ -17,27 +17,29 @@
       <span
         class="menu-area"
         :data-message="optionsData.isApplied ? i18n('menuScriptEnabled') : i18n('menuScriptDisabled')"
-        :tabIndex="tabIndex"
+        :tabIndex
         @click="onToggle">
         <icon :name="getSymbolCheck(optionsData.isApplied)"></icon>
       </span>
       <span
         class="menu-area"
-        :data-message="i18n('menuDashboard')"
-        :tabIndex="tabIndex"
+        :data-message="i18n('menuDashboard') + '\n' + i18n('popupSettingsHint')"
+        :tabIndex
+        @contextmenu.prevent="showSettings = !showSettings"
+        @auxclick="$event.button !== 2 && onManage($event)"
         @click="onManage">
         <icon name="cog"></icon>
       </span>
       <span
         class="menu-area"
         :data-message="i18n('menuNewScript')"
-        :tabIndex="tabIndex"
+        :tabIndex
         @click="onCreateScript">
         <icon name="plus"></icon>
       </span>
       <span
         class="menu-area"
-        :tabIndex="tabIndex"
+        :tabIndex
         :_item.prop="{}"
         @click="showExtras">
         <icon name="more" />
@@ -47,7 +49,7 @@
       <div class="menu-item menu-area menu-find">
         <template v-for="(url, text, i) in findUrls" :key="url">
           <a target="_blank" :class="{ ellipsis: !i, 'mr-1': !i, 'ml-1': i }"
-             :href="url" :data-message="url.split('://')[1]" :tabIndex="tabIndex">
+             :href="url" :data-message="url.split('://')[1]" :tabIndex>
             <icon name="search" v-if="!i"/>{{text}}
           </a>
           <template v-if="!i">/</template>
@@ -57,6 +59,10 @@
     <div class="failure-reason" v-if="store.failureText">
       <span v-text="store.failureText"/>
       <code v-text="store.blacklisted" v-if="store.blacklisted" class="ellipsis inline-block"/>
+    </div>
+    <div v-if="showSettings" class="mb-1c menu settings">
+      <settings-popup/>
+      <button v-text="i18n('buttonClose')" @click="showSettings = false"/>
     </div>
     <div
       v-for="scope in injectionScopes"
@@ -69,12 +75,12 @@
       :key="scope.name">
       <div
         class="menu-item menu-area menu-group"
-        :tabIndex="tabIndex"
+        :tabIndex
         @click="toggleMenu(scope.name)">
         <icon name="arrow" class="icon-collapse"></icon>
         <div class="flex-auto" v-text="scope.title" :data-totals="scope.totals" />
       </div>
-      <div class="submenu" focusme>
+      <div class="submenu">
         <div
           v-for="item in scope.list"
           :key="item.id"
@@ -89,8 +95,8 @@
           class="script">
           <div
             class="menu-item menu-area"
-            :tabIndex="tabIndex"
-            :data-message="!store.failure && item.data.more ? TARDY_MATCH : item.name"
+            :tabIndex
+            :data-message="item.name"
             @focus="focusedItem = item"
             @keydown.enter.exact.stop="onEditScript(item)"
             @keydown.space.exact.stop="onToggleScript(item)"
@@ -103,26 +109,31 @@
                  @mousedown.middle.exact.stop="onEditScript(item)">
               <sup class="syntax" v-if="item.data.syntax" v-text="i18n('msgSyntaxError')"/>
               {{item.name}}
+              <a v-if="!store.failure && item.data.more"
+                 class="tardy" tabindex="0" :title="TARDY_MATCH"
+                 @click.stop="note = note === TARDY_MATCH ? '' : TARDY_MATCH">
+                <Icon name="info"/>
+              </a>
             </div>
             <div class="upd ellipsis" :title="item.upd" :data-error="item.updError"/>
           </div>
           <div class="submenu-buttons"
                v-show="showButtons(item)">
             <!-- Using a standard tooltip that's shown after a delay to avoid nagging the user -->
-            <div class="submenu-button" :tabIndex="tabIndex" @click="onEditScript(item)"
+            <div class="submenu-button" :tabIndex @click="onEditScript(item)"
                  :title="i18n('buttonEditClickHint')">
               <icon name="code"></icon>
             </div>
             <div
               class="submenu-button"
-              :tabIndex="tabIndex"
+              :tabIndex
               :_item.prop="item"
               @click="showExtras">
               <icon name="more"/>
             </div>
           </div>
           <div v-if="item.excludes" class="excludes-menu mb-1c mr-1c">
-            <button v-for="(val, key) in item.excludes[1]" :key="key"
+            <button v-for="(val, key) in item.excludes[1]" :key
                     v-text="val" class="ellipsis" :title="`*://${val}/*`"
                     @click="onExcludeSave(item, `*://${val}/*`)"/>
             <input v-model="item.excludes[0]" spellcheck="false"
@@ -136,7 +147,7 @@
               <summary><icon name="info"/></summary>
               <small>{{i18n('menuExcludeHint')}} {{i18n('labelRelated')}}<a
                 v-text="i18n('labelExcludeMatch')" target="_blank"
-                href="https://violentmonkey.github.io/api/matching/"/>
+                :href="VM_DOCS_MATCHING"/>
               </small>
             </details>
           </div>
@@ -144,8 +155,8 @@
             <div
               class="menu-item menu-area"
               v-for="({ autoClose = true, text, title }, key) in store.commands[item.id]"
-              :key="key"
-              :tabIndex="tabIndex"
+              :key
+              :tabIndex
               :cmd.prop="[item.id, key, autoClose]"
               :data-message="title || text"
               @mousedown="onCommand"
@@ -159,22 +170,23 @@
         </div>
       </div>
     </div>
-    <div class="failure-reason" v-if="store.injectionFailure">
-      <div v-text="i18n('menuInjectionFailed')"/>
+    <div class="failure-reason" v-if="note || store.injectionFailure" :class="{note}">
+      <div v-text="note || i18n('menuInjectionFailed')"/>
       <a v-text="i18n('menuInjectionFailedFix')" href="#"
-         v-if="store.injectionFailure.fixable"
+         v-if="!note && store.injectionFailure.fixable"
          @click.prevent="onInjectionFailureFix"/>
     </div>
     <div class="incognito"
        v-if="store.tab?.incognito"
        v-text="i18n('msgIncognitoChanges')"/>
     <footer>
-      <a v-if="reloadHint" v-text="reloadHint" :tabIndex="tabIndex" @click="reloadTab" />
-      <a v-else target="_blank" :href="`https://${HOME}/api/gm/`" :tabIndex="tabIndex" v-text="HOME" />
+      <a v-if="reloadHint" v-text="reloadHint" :tabIndex @click="reloadTab" />
+      <a v-else target="_blank" :href="`https://${HOME}/api/gm/`" :tabIndex v-text="HOME" />
     </footer>
-    <div class="message" v-if="message" v-text="message" :data-tall="message === TARDY_MATCH"/>
+    <div class="message" v-if="message" v-text="message"/>
     <div v-show="topExtras" ref="$topExtras" class="extras-menu">
       <div v-text="i18n('labelSettings')" @click="onManage(1)" tabindex="0"/>
+      <div v-text="i18n('popupSettings')" @click="showSettings = true" tabindex="0"/>
       <div v-text="i18n('updateListedCmd', `${Object.keys(store.updatableScripts).length}`)"
            @click="onUpdateListed" tabindex="0"
            v-if="store.updatableScripts"/>
@@ -185,7 +197,7 @@
     <div v-if="extras" ref="$extras" class="extras-menu">
       <a v-for="[url, text] in activeLinks"
          :key="url" :href="url" :data-message="url" tabindex="0" v-text="text"
-         rel="noopener noreferrer" target="_blank"/>
+         v-bind="EXTERNAL_LINK_PROPS"/>
       <div v-text="i18n('menuExclude')" tabindex="0" @click="onExclude"/>
       <div v-text="extras.data.config.removed ? i18n('buttonRestore') : i18n('buttonRemove')"
            tabindex="0"
@@ -200,15 +212,20 @@
 
 <script setup>
 import { computed, nextTick, onActivated, onMounted, reactive, ref } from 'vue';
+import { VM_DOCS_MATCHING } from '@/common/consts';
 import options from '@/common/options';
+import optionsDefaults, {
+  kFiltersPopup, kPopupWidth, kUpdateEnabledScriptsOnly,
+} from '@/common/options-defaults';
 import {
   getScriptHome, getScriptName, getScriptRunAt, getScriptSupportUrl, getScriptUpdateUrl,
   i18n, makePause, sendCmdDirectly, sendTabCmd,
 } from '@/common';
 import handlers from '@/common/handlers';
 import { objectPick } from '@/common/object';
-import { focusMe, getActiveElement } from '@/common/ui';
+import { EXTERNAL_LINK_PROPS, getActiveElement } from '@/common/ui';
 import Icon from '@/common/ui/icon';
+import SettingsPopup from '@/common/ui/settings-popup.vue';
 import { keyboardService, isInput, handleTabNavigation } from '@/common/keyboard';
 import { store } from '../utils';
 
@@ -219,22 +236,22 @@ const NAME = `${extensionManifest.name}`;
 const TARDY_MATCH = i18n('msgTardyMatch');
 const SCRIPT_CLS = '.script';
 const RUN_AT_ORDER = ['start', 'body', 'end', 'idle'];
-const kFiltersPopup = 'filtersPopup';
-const kUpdateEnabledScriptsOnly = 'updateEnabledScriptsOnly';
 const needsReload = reactive({});
 
-const $root = ref();
 const $extras = ref();
 const $topExtras = ref();
-const optionsData = reactive({
-  [IS_APPLIED]: true,
-  [kFiltersPopup]: {},
-  [kUpdateEnabledScriptsOnly]: true,
-});
+const optionsData = reactive(objectPick(optionsDefaults, [
+  IS_APPLIED,
+  kFiltersPopup,
+  kPopupWidth,
+  kUpdateEnabledScriptsOnly,
+]));
 const activeMenu = ref('scripts');
+const showSettings = ref();
 const extras = ref();
 const focusedItem = ref();
 const message = ref();
+const note = ref();
 const topExtras = ref();
 
 const activeLinks = computed(makeActiveLinks);
@@ -248,8 +265,9 @@ options.hook((changes) => {
     const v = changes[key];
     if (v != null) {
       optionsData[key] = v && isObject(v)
-          ? { ...optionsData[key], ...v }
-          : v;
+        ? { ...optionsData[key], ...v }
+        : v;
+      if (key === kPopupWidth) document.body.style.width = v + 'px';
     }
   }
 });
@@ -388,9 +406,11 @@ function onToggle() {
   checkReload();
   updateMessage();
 }
-/** @param {number | Event} evt - index of tab to open in src/options/views/app.vue */
+/** @param {number | MouseEvent} evt - index of tab to open in src/options/views/app.vue */
 function onManage(evt) {
-  sendCmdDirectly('OpenDashboard', evt === 1 ? TAB_SETTINGS : '').then(close);
+  sendCmdDirectly('OpenDashboard',
+    evt === 1 || evt.button === 1 || evt.ctrlKey ? TAB_SETTINGS : '')
+  .then(close);
 }
 function onOpenUrl(e) {
   const el = e.target.closest('a[href][target=_blank]');
@@ -489,7 +509,7 @@ async function onExcludeSave(item, btn) {
 }
 function navigate(dir) {
   const elems = [];
-  for (const el of $root.value.querySelectorAll('[tabindex="0"]')) {
+  for (const el of document.querySelectorAll('[tabindex="0"]')) {
     const rect = el.getBoundingClientRect();
     if (rect.width && rect.height) {
       el.rect = rect;
@@ -540,28 +560,6 @@ function showButtons(item) {
 }
 
 onMounted(() => {
-  const $el = $root.value;
-  const style = $el.style;
-  // Chrome bug: the popup's initial devicePixelRatio equals zoom level of a normal extension page
-  const ratio = !IS_FIREFOX && devicePixelRatio;
-  if (ratio && ratio !== 1) {
-    self.onresize = () => {
-      if (ratio !== devicePixelRatio) {
-        style.maxHeight = parseInt(style.maxHeight) * ratio + 'px';
-        self.onresize = null;
-      }
-    };
-  }
-  /* Popup is auto-sized by the browser, so we force it to expand to extract the maximum height.
-   * Doing it at startup helps avoid glitchy re-adjustments later. */
-  style.height = screen.height + 'px';
-  new IntersectionObserver(([e], obs) => {
-    obs.disconnect();
-    // rootBounds may be 0 in old Firefox, so we'll use clientHeight as fallback
-    style.maxHeight = ((e.rootBounds.height | 0) || document.documentElement.clientHeight) + 'px';
-    style.height = '';
-  }).observe($el);
-  focusMe($el);
   keyboardService.enable();
   keyboardService.register('escape', () => {
     const item = extras.value || topExtras.value;

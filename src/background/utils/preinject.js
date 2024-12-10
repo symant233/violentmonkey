@@ -1,4 +1,6 @@
-import { getActiveTab, getScriptName, getScriptPrettyUrl, getUniqId, sendTabCmd } from '@/common';
+import {
+  getActiveTab, getScriptName, getScriptPrettyUrl, getUniqId, sendTabCmd
+} from '@/common';
 import {
   __CODE, TL_AWAIT, UNWRAP,
   BLACKLIST, HOMEPAGE_URL, KNOWN_INJECT_INTO, META_STR, METABLOCK_RE, NEWLINE_END_RE,
@@ -28,7 +30,6 @@ let isApplied;
 let injectInto;
 let ffInject;
 let xhrInject = false; // must be initialized for proper comparison when toggling
-let vivaldiChecked = IS_FIREFOX;
 
 const sessionId = getUniqId();
 const API_HEADERS_RECEIVED = browser.webRequest.onHeadersReceived;
@@ -44,6 +45,12 @@ const API_EXTRA = [
 const findCspHeader = h => h.name.toLowerCase() === 'content-security-policy';
 const CSP_RE = /(?:^|[;,])\s*(?:script-src(-elem)?|(d)efault-src)(\s+[^;,]+)/g;
 const NONCE_RE = /'nonce-([-+/=\w]+)'/;
+const SKIP_COMMENTS_RE = /^\s*(?:\/\*[\s\S]*?\*\/|\/\/.*[\r\n]+|\s+)*/u;
+/** Not using a combined regex to check for the chars to avoid catastrophic backtracking */
+const isUnsafeConcat = s => (s = s.charCodeAt(s.match(SKIP_COMMENTS_RE)[0].length)) === 45/*"-"*/
+  || s === 43/*"+"*/
+  || s === 91/*"["*/
+  || s === 40/*"("*/;
 const UNSAFE_INLINE = "'unsafe-inline'";
 /** These bags are reused in cache to reduce memory usage,
  * CACHE_KEYS is for removeStaleCacheEntry */
@@ -148,7 +155,6 @@ addPublicCommands({
     const frameDoc = getFrameDocId(isTop, src[kDocumentId], frameId);
     const tabId = tab.id;
     if (!url) url = src.url || tab.url;
-    if (!vivaldiChecked) checkVivaldi(tab);
     clearFrameData(tabId, frameDoc);
     let skip = skippedTabs[tabId];
     if (skip > 0) { // first time loading the tab after skipScripts was invoked
@@ -369,7 +375,9 @@ function prepareXhrBlob({ [kResponseHeaders]: responseHeaders, [kFrameId]: frame
 }
 
 function prepare(cacheKey, url, isTop) {
-  const shouldExpose = isTop && url.startsWith('https://') && expose[url.split('/', 3)[2]];
+  const shouldExpose = isTop && url.startsWith('https://')
+    ? expose[url.split('/', 3)[2]]
+    : null;
   const bagNoOp = shouldExpose != null ? BAG_NOOP_EXPOSE : BAG_NOOP;
   BAG_NOOP_EXPOSE[INJECT][EXPOSE] = shouldExpose;
   if (!isApplied) {
@@ -386,7 +394,7 @@ function prepare(cacheKey, url, isTop) {
 }
 
 async function prepareBag(cacheKey, url, isTop, env, inject, errors) {
-  await env[PROMISE];
+  if (env[PROMISE]) await env[PROMISE];
   cache.batch(true);
   const bag = { [INJECT]: inject };
   const { allIds, [MORE]: envDelayed } = env;
@@ -422,6 +430,7 @@ async function prepareBag(cacheKey, url, isTop, env, inject, errors) {
 }
 
 function prepareScripts(env) {
+  env[PROMISE] = null; // let GC have it
   const scripts = env[SCRIPTS];
   for (let i = 0, script, key, id; i < scripts.length; i++) {
     script = scripts[i];
@@ -465,7 +474,6 @@ function prepareScript(script, env) {
   const injectedCode = [];
   const metaCopy = meta::mapEntry(null, pluralizeMeta);
   const metaStrMatch = METABLOCK_RE.exec(code);
-  let hasReqs;
   let codeIndex;
   let tmp;
   for (const key of META_KEYS_TO_ENSURE) {
@@ -489,26 +497,29 @@ function prepareScript(script, env) {
       // hiding module interface from @require'd scripts so they don't mistakenly use it
       '(define,module,exports)=>{');
   }
+  tmp = false;
   for (const url of meta[S_REQUIRE]) {
     const req = require[pathMap[url] || url];
     if (/\S/.test(req)) {
-      injectedCode.push(req, NEWLINE_END_RE.test(req) ? ';' : '\n;');
-      hasReqs = true;
+      injectedCode.push(...[
+        tmp && isUnsafeConcat(req) && ';',
+        req,
+        !NEWLINE_END_RE.test(req) && '\n',
+      ].filter(Boolean));
+      tmp = true;
     }
   }
-  // adding a nested IIFE to support 'use strict' in the code when there are @requires
-  if (hasReqs && wrap) {
-    injectedCode.push(startIIFE, '()=>{');
+  if (tmp && isUnsafeConcat(code)) {
+    injectedCode.push(';');
   }
   codeIndex = injectedCode.length;
   injectedCode.push(code);
   // adding a new line in case the code ends with a line comment
   injectedCode.push(...[
-    !NEWLINE_END_RE.test(code) ? '\n' : '',
-    hasReqs && wrap ? '})()' : '',
-    wrapTryCatch ? `})()}catch(e){${dataKey}(e)}}` : wrap ? `})()}` : '',
+    !NEWLINE_END_RE.test(code) && '\n',
+    wrapTryCatch ? `})()}catch(e){${dataKey}(e)}}` : wrap && `})()}`,
     // 0 at the end to suppress errors about non-cloneable result of executeScript in FF
-    IS_FIREFOX ? ';0' : '',
+    IS_FIREFOX && ';0',
     '\n//# sourceURL=', getScriptPrettyUrl(script, displayName),
   ].filter(Boolean));
   return {
@@ -527,8 +538,8 @@ function prepareScript(script, env) {
     [META_STR]: [
       '',
       codeIndex,
-      tmp = (metaStrMatch.index + metaStrMatch[1].length),
-      tmp + metaStrMatch[2].length,
+      tmp = metaStrMatch && (metaStrMatch.index + metaStrMatch[1].length),
+      tmp + metaStrMatch?.[4].length,
     ],
     [RUN_AT]: runAt[id],
   };
@@ -656,13 +667,6 @@ function clearFrameData(tabId, frameId, tabRemoved) {
   clearRequestsByTabId(tabId, frameId);
   clearValueOpener(tabId, frameId);
   clearNotifications(tabId, frameId, tabRemoved);
-}
-
-function checkVivaldi(tab) {
-  vivaldiChecked = true;
-  if (tab.vivExtData/*new*/ || tab.extData/*old*/) {
-    ua.brand = ua.browserBrand = 'Vivaldi';
-  }
 }
 
 function sendPopupShown(tabId, frameDoc) {

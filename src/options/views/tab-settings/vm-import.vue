@@ -19,18 +19,22 @@
   </div>
 </template>
 
-<script setup>
-import { onMounted, reactive, ref } from 'vue';
-import { ensureArray, i18n, sendCmdDirectly } from '@/common';
+<script>
+import { ensureArray, getUniqId, i18n, sendCmdDirectly } from '@/common';
+import { listenOnce } from '@/common/browser';
 import { RUN_AT_RE } from '@/common/consts';
 import options from '@/common/options';
-import SettingCheck from '@/common/ui/setting-check';
 import loadZipLibrary from '@/common/zip';
 import { showConfirmation } from '@/common/ui';
 import {
   kDownloadURL, kExclude, kInclude, kMatch, kOrigExclude, kOrigInclude, kOrigMatch,
   runInBatch, store,
 } from '../../utils';
+</script>
+
+<script setup>
+import { onActivated, onMounted, reactive, ref } from 'vue';
+import SettingCheck from '@/common/ui/setting-check';
 
 const reports = reactive([]);
 const buttonImport = ref();
@@ -39,12 +43,22 @@ const i18nConfirmUndoImport = i18n('confirmUndoImport');
 const labelImportScriptData = i18n('labelImportScriptData');
 const labelImportSettings = i18n('labelImportSettings');
 
+let depsPortId;
 let undoPort;
 
 onMounted(() => {
   const toggleDragDrop = initDragDrop(buttonImport.value);
   addEventListener('hashchange', toggleDragDrop);
   toggleDragDrop();
+});
+onActivated(() => {
+  if (++store.isEmpty === 2) {
+    const btn = buttonImport.value;
+    if (btn.getBoundingClientRect().y > innerHeight / 2) {
+      btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    setTimeout(() => btn.focus());
+  }
 });
 
 function pickBackup() {
@@ -68,6 +82,7 @@ async function doImportBackup(file) {
   const entries = await reader.getEntries().catch(report) || [];
   if (reports.length) return;
   report('', file.name, 'info');
+  report('', '', 'info'); // deps
   const uriMap = {};
   const total = entries.reduce((n, entry) => n + entry.filename?.endsWith('.user.js'), 0);
   const vmEntry = entries.find(entry => entry.filename?.toLowerCase() === 'violentmonkey');
@@ -76,6 +91,23 @@ async function doImportBackup(file) {
   const scripts = vm.scripts || {};
   const values = vm.values || {};
   let now;
+  let depsDone = 0;
+  let depsTotal = 0;
+  depsPortId = getUniqId();
+  chrome.runtime.onConnect.addListener(port => {
+    if (port.name !== depsPortId) return;
+    port.onMessage.addListener(([url, done]) => {
+      if (done) ++depsDone; else ++depsTotal;
+      reports[1].name = i18n('msgLoadingDependency', [depsDone, depsTotal]);
+      if (depsDone === depsTotal) {
+        url = i18n('buttonOK');
+        port.disconnect();
+      } else if (!done) {
+        url += '...';
+      }
+      reports[1].text = url;
+    });
+  });
   if (!undoPort) {
     now = ' ⯈ ' + new Date().toLocaleTimeString();
     undoPort = chrome.runtime.connect({ name: 'undoImport' });
@@ -121,6 +153,7 @@ async function doImportBackup(file) {
     const more = scripts[name];
     const data = {
       code,
+      portId: depsPortId,
       ...more && {
         custom: more.custom,
         config: {
@@ -202,10 +235,7 @@ async function undoImport() {
 }
 
 function resolveOnUndoMessage(resolve) {
-  undoPort.onMessage.addListener(function fn() {
-    undoPort.onMessage.removeListener(fn);
-    resolve();
-  });
+  undoPort.onMessage::listenOnce(resolve);
 }
 
 function initDragDrop(targetElement) {

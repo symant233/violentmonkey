@@ -9,25 +9,16 @@
               :class="{active: state.menuNew}"
               :closeAfterClick="true">
               <Tooltip :content="i18n('buttonNew')" placement="bottom" align="start" :disabled="state.menuNew">
-                <a class="btn-ghost" tabindex="0">
+                <a class="btn-ghost" tabindex="0" ref="$menuNew">
                   <Icon name="plus" />
                 </a>
               </Tooltip>
               <template #content>
-                <a
-                  class="dropdown-menu-item"
-                  v-text="i18n('buttonNew')"
-                  tabindex="0"
-                  @click.prevent="handleEditScript('_new')"
-                />
-                <a class="dropdown-menu-item" v-text="i18n('installFrom', 'OpenUserJS')" href="https://openuserjs.org/" target="_blank" rel="noopener noreferrer"></a>
-                <a class="dropdown-menu-item" v-text="i18n('installFrom', 'GreasyFork')" href="https://greasyfork.org/scripts" target="_blank" rel="noopener noreferrer"></a>
-                <a
-                  class="dropdown-menu-item"
-                  v-text="i18n('buttonInstallFromURL')"
-                  tabindex="0"
-                  @click.prevent="handleInstallFromURL"
-                />
+                <a class="dropdown-menu-item"
+                  v-for="([text, props], i) in NEW_LINKS" :key="i" v-text="text" v-bind="props"/>
+                <a class="dropdown-menu-item" v-if="isEmpty"
+                  v-text="`${i18n('buttonImportData')} / ${i18n('labelSync')}...`"
+                  @click="store.isEmpty = 1; setLocationHash(TAB_SETTINGS)"/>
               </template>
             </Dropdown>
             <Tooltip :content="i18n('updateScriptsAll')" placement="bottom" align="start">
@@ -38,7 +29,7 @@
           </div>
           <div v-if="state.filteredScripts.length" class="btn-group">
             <a
-              v-for="({ icon, num }, key) in batchActions" :key="key"
+              v-for="({ icon, num }, key) in batchActions" :key
               class="btn-ghost"
               :class="{
                 'has-error': state.batchAction.action === key,
@@ -62,7 +53,7 @@
         </template>
         <div v-else class="ml-2" v-text="i18n('headerRecycleBin')" />
         <div class="flex-auto"></div>
-        <LocaleGroup i18n-key="labelFilterSort" class="ml-1">
+        <span class="ml-1">{{ i18n('sortOrder') }}
           <select :value="filters.sort" @change="handleOrderChange" class="h-100">
             <option
               v-for="(option, name) in filterOptions.sort"
@@ -71,7 +62,7 @@
               :value="name">
             </option>
           </select>
-        </LocaleGroup>
+        </span>
         <Dropdown align="right" class="filter-sort">
           <Tooltip :content="i18n('labelSettings')" placement="bottom">
             <a class="btn-ghost" tabindex="0">
@@ -138,12 +129,12 @@
           :key="script.props.id"
           :focused="selectedScript === script"
           :showHotkeys="state.showHotkeys"
-          :script="script"
-          :draggable="draggable"
+          :script
+          :draggable
           :visible="index < state.batchRender.limit"
           :viewTable="filters.viewTable"
           :hotkeys="scriptHotkeys"
-          :activeTags="activeTags"
+          :activeTags
           @remove="handleActionRemove"
           @restore="handleActionRestore"
           @toggle="handleActionToggle"
@@ -172,23 +163,35 @@
 import { computed, reactive, nextTick, onMounted, watch, ref, onBeforeUnmount } from 'vue';
 import { i18n, sendCmdDirectly, debounce, ensureArray, makePause, trueJoin } from '@/common';
 import options from '@/common/options';
-import { getActiveElement, isTouch, showConfirmation, showMessage, vFocus } from '@/common/ui';
+import { EXTERNAL_LINK_PROPS, getActiveElement, isTouch, showConfirmation, showMessage, vFocus } from '@/common/ui';
 import hookSetting from '@/common/hook-setting';
 import { forEachKey } from '@/common/object';
 import { setRoute, lastRoute } from '@/common/router';
 import { keyboardService, handleTabNavigation } from '@/common/keyboard';
+import { TAB_SETTINGS } from '@/common/safe-globals';
 import { loadData } from '@/options';
 import Dropdown from 'vueleton/lib/dropdown';
 import Tooltip from 'vueleton/lib/tooltip';
 import SettingCheck from '@/common/ui/setting-check';
 import Icon from '@/common/ui/icon';
-import LocaleGroup from '@/common/ui/locale-group';
 import { customCssElem, findStyleSheetRules } from '@/common/ui/style';
-import { createSearchRules, markRemove, performSearch, runInBatch, store } from '../utils';
+import {
+  createSearchRules, markRemove, performSearch, runInBatch, setLocationHash, store, TOGGLE_OFF, TOGGLE_ON,
+} from '../utils';
 import toggleDragging from '../utils/dragging';
 import ScriptItem from './script-item';
 import Edit from './edit';
 
+const NEW_LINKS = [
+  [i18n('buttonNew'),
+    { tabIndex: 0, onclick: () => handleEditScript('_new') }],
+  [i18n('installFrom', 'OpenUserJS'),
+    { href: 'https://openuserjs.org/', ...EXTERNAL_LINK_PROPS }],
+  [i18n('installFrom', 'GreasyFork'),
+    { href: `https://greasyfork.org/scripts`, ...EXTERNAL_LINK_PROPS }],
+  [i18n('buttonInstallFromURL'),
+    { tabIndex: 0, onclick: handleInstallFromURL }],
+];
 const EDIT = 'edit';
 const REMOVE = 'remove';
 const RESTORE = 'restore';
@@ -266,6 +269,8 @@ let columnsForCardsMode = [];
 /** @type {CSSMediaRule} */
 let narrowMediaRules;
 
+const $menuNew = ref();
+const isEmpty = ref();
 const refSearch = ref();
 const refList = ref();
 const scroller = ref();
@@ -313,7 +318,6 @@ const searchNeedsCodeIds = computed(() => state.search.rules.some(rule => !rule.
 const activeTags = computed(() => state.search.tokens.filter(token => token.prefix === '#' && !token.negative).map(token => token.parsed));
 const getCurrentList = () => showRecycle.value ? store.removedScripts : store.scripts;
 const getDataBatchAction = evt => evt.target.closest('[data-batch-action]');
-const TOGGLE_ON = 'toggle-on';
 const ALL_BATCH_ACTIONS = {
   [TOGGLE]: {
     icon: TOGGLE_ON,
@@ -348,7 +352,7 @@ const batchActions = computed(() => {
     toEnable += !s.config.enabled;
     if (!allShown) toUpdate += s.$canUpdate > 0;
   }
-  res[TOGGLE].icon = toEnable ? TOGGLE_ON : 'toggle-off';
+  res[TOGGLE].icon = toEnable ? TOGGLE_ON : TOGGLE_OFF;
   res[TOGGLE].num = toEnable < num ? toEnable : '';
   if (!toUpdate) ({ [UPDATE]: toUpdate, ...res } = res);
   else res[UPDATE].num = toUpdate < num ? toUpdate : '';
@@ -569,7 +573,7 @@ function handleActionToggle(script) {
  * @param {Element} [el]
  */
 async function handleActionUpdate(what, el) {
-  if (el) (el = (el.querySelector('svg') || el).classList).add('rotate');
+  if (el) (el = (el.querySelector('svg') || el.closest('svg') || el).classList).add('rotate');
   await sendCmdDirectly('CheckUpdate', what && ensureArray(what).map(s => s.props.id));
   el?.remove('rotate');
 }
@@ -751,6 +755,12 @@ if (screen.availWidth > 767) {
 }
 watch(getCurrentList, refreshUI);
 watch(() => store.route.paths[1], onHashChange);
+watch(() => store.scripts, val => {
+  if ((isEmpty.value = !val.length) && (val = $menuNew.value)) {
+    val.focus(); // for Tab navigation and focus highlight
+    val.click();
+  }
+});
 watch(selectedScript, script => {
   keyboardService.setContext('selectedScript', script);
 });

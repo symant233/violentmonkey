@@ -139,8 +139,11 @@ confirmUndoImport:
     Reverter todas as alterações feitas no banco de dados (importação,
     atualização, edição, personalização)
 descBlacklist:
-  description: HTML Description for the global blacklist.
+  description: Description for the global injection blacklist.
   message: URL nesta lista não será injetado por scripts.
+descBlacklistNet:
+  description: Description for the global network blacklist.
+  message: ''
 descCustomCSS:
   description: Description of custom CSS section.
   message: >-
@@ -165,6 +168,18 @@ descScriptTemplate:
   message: >-
     Variáveis suportadas: <{{name}}>, <{{url}}>, <{{date}}>, <{{date:format}}>
     com formato compatível com MomentJS, por exemplo <{{date:YYYY-MM-DD}}>.
+disabledScriptsGroup:
+  description: 'Used as "Disabled scripts: group"'
+  message: grupo
+disabledScriptsHide:
+  description: 'Used as "Disabled scripts: hide"'
+  message: esconda
+disabledScriptsSelector:
+  description: Label of the option.
+  message: 'Scripts Desativados:'
+disabledScriptsShow:
+  description: 'Used as "Disabled scripts: show"'
+  message: mostre
 editHelpDocumention:
   description: Label in the editor help tab for the documentation link.
   message: >-
@@ -232,7 +247,7 @@ failureReasonNoninjectable:
     políticas, motor de pesquisa de site no Opera)
 failureReasonRestarted:
   description: Shown in the popup.
-  message: ''
+  message: Violentmonkey foi reiniciado. Por favor recarregue a aba para rodar scripts
 fileInstallBlocked:
   description: Text in the installer when a local file is dropped into the browser window.
   message: >-
@@ -248,7 +263,7 @@ filterAlphabeticalOrder:
   message: Ordem alfabética
 filterExecutionOrder:
   description: Label for option to sort scripts in execution order.
-  message: Ordem de execução
+  message: execução
 filterLastUpdateOrder:
   description: Label for option to sort scripts by last update time.
   message: Última atualização
@@ -433,9 +448,6 @@ labelFastFirefoxInjectHint:
 labelFeedback:
   description: Label of link to feedback page.
   message: Comentários
-labelFilterSort:
-  description: Label for sort filter.
-  message: Classificar por $1
 labelGeneral:
   description: Label for general settings.
   message: Geral
@@ -450,7 +462,7 @@ labelHomepageURL:
   message: 'URL da página inicial:'
 labelIconURL:
   description: Label for the input.
-  message: ''
+  message: 'URL do ícone:'
 labelImportScriptData:
   description: Option to import script data along with scripts.
   message: Importar dados do script
@@ -504,9 +516,6 @@ labelNotifyUpdates:
 labelNotifyUpdatesGlobal:
   description: Option to prioritize global notification option over script's setting.
   message: ignorar a notificação por script ("configurações" aba no editor)
-labelPopupSort:
-  description: Label in the VM settings tab for script list sort order in popup
-  message: Classificar scripts no popup por $1
 labelPrivacyPolicy:
   description: Label of link to privacy policy
   message: Política de Privacidade
@@ -603,6 +612,9 @@ labelViewSingleColumn:
 labelViewTable:
   description: Label for option in dashboard script list to show the scripts as a table.
   message: Ver como tabela
+labelWidth:
+  description: Width.
+  message: 'Largura:'
 labelXhrInject:
   description: >-
     (`$1` will be shown as `page`) Option in Advanced settings to enable
@@ -859,15 +871,18 @@ optionPopupEnabledFirst:
 optionPopupGroupDisabled:
   description: Option to group disabled scripts in popup.
   message: Agrupar scripts desativados
+  touched: false
 optionPopupGroupRunAt:
   description: Option to group scripts in popup shown only when sorting by execution order.
   message: Agrupar por @run-at stage
 optionPopupHideDisabled:
   description: Option to hide disabled scripts in popup.
   message: Ocultar scripts desativados
+  touched: false
 optionPopupShowDisabled:
   description: Option to show disabled scripts in popup.
   message: Mostrar scripts desativados
+  touched: false
 optionShowEnabledFirst:
   description: Option to show enabled scripts first in alphabetical order.
   message: Mostrar scripts habilitados primeiro
@@ -888,6 +903,12 @@ optionUpdate:
     Label of the update section in settings and notification title for script
     updates.
   message: Atualizar
+popupSettings:
+  description: Item inside the popup's "⋮" menu
+  message: Configurações de Popup
+popupSettingsHint:
+  description: Hint for the config button in the popup
+  message: ''
 readonly:
   description: Text in the editor's header for non-editable scripts.
   message: Somente leitura
@@ -904,10 +925,10 @@ readonlyOptWarn:
   message: ''
 reinstall:
   description: Button to reinstall a script
-  message: ''
+  message: Reinstale
 reloadTab:
   description: Label of action to reload the tab
-  message: ''
+  message: Recarregue a aba
 reloadTabTrackHint:
   description: Tooltip for "Reload tab" checkbox when installer is tracking a local file.
   message: ''
@@ -936,9 +957,12 @@ sideMenuSettings:
   message: Configurações
 skipScripts:
   description: Title of the hotkey in the browser UI for customizing the hotkeys.
-  message: ''
+  message: Recarregue a pagina sem os scripts
 skipScriptsMsg:
   description: Message shown in the popup if the tab was reloaded without scripts.
+  message: ''
+sortOrder:
+  description: Label for the script sort order in dashboard, settings, popup settings.
   message: ''
 stopTracking:
   description: Button in a script installation dialog when actually tracking local file.
@@ -960,6 +984,9 @@ titleSearchHintV2:
     Hover title for search icon in dashboard. Do not translate content between
     <code>...</code>.
   message: ''
+toggleInjection:
+  description: Label for a keyboard shortcut.
+  message: ''
 trackEdits:
   description: Button in a script installation dialog.
   message: ''
@@ -970,13 +997,13 @@ updateListedCmd:
   description: >-
     Command to update scripts e.g. in the extension popup, number of scripts in
     parentheses.
-  message: ''
+  message: Atualize scripts ($1)
 updateScript:
   description: Button to update one script.
   message: Atualizar
 updateScriptsAll:
   description: Command/button to update all scripts.
-  message: ''
+  message: Atualize todos os scripts
 updateScriptsInTab:
   description: Command/button to update scripts that run in current tab.
   message: ''

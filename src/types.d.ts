@@ -174,6 +174,8 @@ declare namespace VMScript {
   }
   type Custom = {
     name?: string;
+    /** Installation web page that will be used for inferring a missing @homepageURL */
+    from?: string;
     downloadURL?: string;
     homepageURL?: string;
     lastInstallURL?: string;
@@ -225,6 +227,32 @@ declare namespace VMScript {
   }
 }
 
+declare interface VMScriptSourceOptions {
+  code?: string;
+  config?: VMScript.Config;
+  custom?: VMScript.Custom;
+  meta?: VMScript.Meta;
+  props?: VMScript.Props;
+
+  id?: number;
+  isNew?: boolean;
+  position?: number;
+
+  cache?: StringMap;
+  require?: StringMap;
+
+  from?: string;
+  url?: string;
+
+  bumpDate?: boolean;
+  fetchOpts?: object;
+  message?: string;
+  portId?: string;
+  reloadTab?: boolean;
+  reuseDeps?: boolean;
+  update?: object;
+}
+
 /**
  * Injection data sent to the content bridge when injection is disabled
  */
@@ -235,7 +263,6 @@ declare interface VMInjectionDisabled {
 declare interface VMInjectionFlags {
   clipFF?: boolean;
   forceContent?: boolean;
-  xhr?: boolean;
 }
 
 /**
@@ -298,7 +325,11 @@ declare namespace VMInjection {
     more: EnvDelayed;
   }
   interface Info {
+    gmi: {
+      isIncognito: boolean;
+    };
     ua: VMScriptGMInfoPlatform;
+    uad?: true;
   }
   /**
    * Script prepared for injection

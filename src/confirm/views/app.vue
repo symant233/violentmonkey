@@ -50,6 +50,7 @@
               <dd v-text="list" class="ellipsis"/>
             </dl>
           </div>
+          <div v-if="!script && message" v-text="message" class="warning"/>
         </div>
       </div>
       <div class="flex" v-if="script">
@@ -95,7 +96,7 @@
                class="status stretch-self flex center-items ml-2"/>
         </div>
       </div>
-      <div class="incognito" v-if="info.incognito" v-text="i18n('msgIncognitoChanges')"/>
+      <div class="warning" v-if="info.incognito" v-text="i18n('msgIncognitoChanges')"/>
     </div>
     <div class="frame-block flex-1 pos-rel">
       <vm-externals
@@ -104,7 +105,7 @@
         :value="script"
         class="abs-full"
         :cm-options="cmOptions"
-        :commands="commands"
+        :commands
         :install="{ code, deps, url: info.url }"
       />
     </div>
@@ -117,8 +118,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import Tooltip from 'vueleton/lib/tooltip';
 import Icon from '@/common/ui/icon';
 import {
-  getFullUrl, getLocaleString, getScriptHome, i18n, isRemote,
-  makePause, makeRaw, request, sendCmdDirectly, trueJoin,
+  debounce, getFullUrl, getLocaleString, getScriptHome, i18n, isRemote, makePause, sendCmdDirectly,
+  trueJoin,
 } from '@/common';
 import { keyboardService, modifiers } from '@/common/keyboard';
 import initCache from '@/common/cache';
@@ -158,7 +159,7 @@ const isLocal = computed(() => !isRemote(info.value.url));
 const lists = ref();
 const listsShown = ref(true);
 const message = ref('');
-const scriptName = ref('...');
+const scriptName = ref('\xA0');
 const reinstall = ref(false);
 const reloadTab = ref(false);
 const safeIcon = ref();
@@ -185,6 +186,8 @@ const icons = computed(() => {
 
 /** @type {FileSystemFileHandle} */
 let fileHandle;
+/** @type {FileSystemObserver | false} */
+let fso;
 /** @type {chrome.runtime.Port} */
 let filePort;
 let filePortResolve;
@@ -384,17 +387,17 @@ async function loadDeps() {
 function closeTab() {
   sendCmdDirectly('TabClose');
 }
-async function getFile(url, { isBlob, useCache } = {}) {
+async function getFile(url, opts) {
+  const { isBlob, useCache } = opts || {};
   const cacheKey = isBlob ? `blob+${url}` : `text+${url}`;
   if (useCache && cache.has(cacheKey)) {
     return cache.get(cacheKey);
   }
-  const response = await request(url, {
+  const { data } = await sendCmdDirectly('Request', {
+    url,
+    vet: !!opts, // TODO: add a blacklist for installation URLs?
     [kResponseType]: isBlob ? 'blob' : null,
   });
-  const data = isBlob
-    ? await makeRaw(response)
-    : response.data;
   if (useCache) cache.put(cacheKey, data);
   return data;
 }
@@ -404,8 +407,9 @@ async function getScript(url) {
       ? await (await fileHandle.getFile()).text()
       : cachedCodePromise && await cachedCodePromise || await getFile(url);
   } catch (e) {
-    message.value = i18n('msgErrorLoadingData');
-    throw url;
+    // eslint-disable-next-line no-ex-assign
+    if ((e = e.message)?.startsWith('{')) try { e = 'HTTP ' + JSON.parse(e).status; } catch {/**/}
+    message.value = i18n('msgErrorLoadingData') + (e ? '\n' + e : '');
   } finally {
     cachedCodePromise = null;
   }
@@ -453,20 +457,35 @@ async function trackLocalFile() {
   }
   cachedCodePromise = null; // always re-read because the file may have changed since then
   tracking.value = true;
-  while (tracking.value && !await Promise.race([
-    makePause(500),
-    trackingPromise = new Promise(cb => { stopResolve = cb; }),
-  ])) {
+  if (fileHandle && fso == null && (fso = global.FileSystemObserver || false)) {
+    fso = new fso(debounce(onFileChanged, 20)); // one write to a file produces several calls
+  }
+  if (fso) {
     try {
-      await loadData(true);
-      const parsedMeta = await parseMeta();
-      await loadDeps();
-      await installScript(null, parsedMeta);
-      sameCode.value = false;
-    } catch (e) { /* NOP */ }
+      await fso.observe(fileHandle);
+    } catch (err) {
+      fso = null;
+    }
+  }
+  while (tracking.value) {
+    trackingPromise = new Promise(cb => { stopResolve = cb; });
+    if (await (fso ? trackingPromise : Promise.race([makePause(500), trackingPromise]))) {
+      break;
+    }
+    await onFileChanged();
     stopResolve();
   }
+  if (fso) fso.disconnect();
   trackingPromise = tracking.value = false;
+}
+async function onFileChanged() {
+  try {
+    await loadData(true);
+    const parsedMeta = await parseMeta();
+    await loadDeps();
+    await installScript(null, parsedMeta);
+    sameCode.value = false;
+  } catch (e) { /* NOP */ }
 }
 async function checkSameCode() {
   const { name, namespace } = script.value.meta || {};
@@ -626,7 +645,8 @@ $vertLayoutThresholdMinus1: 1800px;
       }
     }
   }
-  .incognito {
+  .warning {
+    white-space: pre-line;
     padding: .25em 0;
     color: red;
   }
@@ -659,7 +679,7 @@ $vertLayoutThresholdMinus1: 1800px;
     --btn-border-hover: #35699f;
   }
   @media (prefers-color-scheme: dark) {
-    .incognito {
+    .warning {
       color: orange;
     }
     &:not(.reinstall) {

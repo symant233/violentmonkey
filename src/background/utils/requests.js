@@ -1,4 +1,4 @@
-import { blob2base64, getFullUrl, sendTabCmd, string2uint8array } from '@/common';
+import { blob2base64, sendTabCmd, string2uint8array } from '@/common';
 import { CHARSET_UTF8, FORM_URLENCODED, UA_PROPS } from '@/common/consts';
 import { downloadBlob } from '@/common/download';
 import { deepEqual, forEachEntry, forEachValue, objectPick } from '@/common/object';
@@ -9,6 +9,7 @@ import {
 } from './requests-core';
 import { getFrameDocIdAsObj, getFrameDocIdFromSrc } from './tabs';
 import { FIREFOX, navUA, navUAD } from './ua';
+import { vetUrl } from './url';
 
 addPublicCommands({
   /**
@@ -34,7 +35,7 @@ addPublicCommands({
     return httpRequest(opts, events, src, cb)
     .catch(events.includes('error') && (err => cb({
       id,
-      error: err.message,
+      error: err.message || err,
       data: null,
       type: 'error',
     })));
@@ -210,7 +211,7 @@ async function httpRequest(opts, events, src, cb) {
   const { tab } = src;
   const { incognito } = tab;
   const { anonymous, id, overrideMimeType, [kXhrType]: xhrType } = opts;
-  const url = getFullUrl(opts.url, src.url);
+  const url = vetUrl(opts.url, src.url, true);
   const req = requests[id];
   if (!req || req.cb) return;
   req.cb = cb;
@@ -312,7 +313,7 @@ function decodeBody([body, type, wasBlob]) {
     // FF supports FormData over messaging
     // Chrome doesn't - we use this code only with an empty FormData just to create the object
     const res = new FormData();
-    body.forEach(entry => res.set(...entry));
+    body.forEach(entry => res.append(...entry));
     body = res;
     type = '';
   } else if (type === 'usp') {

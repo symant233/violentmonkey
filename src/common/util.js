@@ -254,6 +254,8 @@ export async function requestLocalFile(url, options = {}) {
   });
 }
 
+const isDataUriRe = /^data:/i;
+const isHttpOrHttpsRe = /^https?:\/\//i;
 const isLocalUrlRe = re`/^(
   file:|
   about:|
@@ -269,15 +271,46 @@ const isLocalUrlRe = re`/^(
     )
     (:\d+|\/|$)
 )/ix`;
-export const isDataUri = url => /^data:/i.test(url);
-export const isValidHttpUrl = url => /^https?:\/\//i.test(url) && tryUrl(url);
+/** Cherry-picked from https://greasyfork.org/en/help/cdns */
+export const isCdnUrlRe = re`/^https:\/\/(
+  (\w+-)?cdn(js)?(-\w+)?\.[^/]+ |
+  bundle\.run |
+  (www\.)?gitcdn\.\w+ |
+  (
+    ajax\.aspnetcdn |
+    apis\.google |
+    apps\.bdimg |
+    caiyunapp |
+    code\.(bdstatic | jquery) |
+    kit\.fontawesome |
+    lib\.baomitu |
+    libs\.baidu |
+    npm\.elemecdn |
+    registry\.npmmirror |
+    static\.(hdslb | yximgs) |
+    uicdn\.toast |
+    unpkg |
+    www\.(gstatic | layuicdn) |
+    \w+\.googleapis
+  )\.com |
+  (
+    bowercdn |
+    craig\.global\.ssl\.fastly
+  )\.net |
+  [^/.]+\.(
+    github\.(io | com) |
+    zstatic\.net
+  )
+)\//ix`;
+export const isDataUri = /*@__PURE__*/isDataUriRe.test.bind(isDataUriRe);
+export const isValidHttpUrl = url => isHttpOrHttpsRe.test(url) && tryUrl(url);
 export const isRemote = url => url && !isLocalUrlRe.test(decodeURI(url));
 
 /** @returns {string|undefined} */
-export function tryUrl(str) {
+export function tryUrl(str, base) {
   try {
-    if (str && new URL(str)) {
-      return str; // throws on invalid urls
+    if (str ?? base) {
+      return new URL(str, base).href; // throws on invalid urls
     }
   } catch (e) {
     // undefined

@@ -137,13 +137,18 @@ confirmUndoImport:
     Отменить все изменения, внесённые в базу данных (импорт, обновление,
     редактирование, настройка)
 descBlacklist:
-  description: HTML Description for the global blacklist.
-  message: URL-адреса из этого списка не будут обрабатываться скриптами.
+  description: Description for the global injection blacklist.
+  message: Чёрный список инъекций (скрипты не будут запускаться на указанных сайтах)
+descBlacklistNet:
+  description: Description for the global network blacklist.
+  message: >-
+    Чёрный список сети (скрипты не будут подключаться к указанным сайтам и их
+    куки)
 descCustomCSS:
   description: Description of custom CSS section.
   message: >-
     Пользовательский CSS для страниц настроек и установки скриптов. Если вы не
-    знаете зачем это нужно, пожалуйста, не редактируйте.
+    знаете, зачем это нужно, пожалуйста, не редактируйте.
 descEditorOptions:
   description: Description of editor options JSON section.
   message: >-
@@ -155,7 +160,7 @@ descEditorOptions:
 descEditorOptionsGeneric:
   description: Description of editor options in VM settings.
   message: >-
-    Булевые параметры можно переключать двойным щелчком на значении:
+    Логические параметры можно переключать двойным щелчком на значении:
     <code>true</code> = включено, <code>false</code> = отключено. Числовые
     параметры, заканчивающиеся на <code>Delay</code>, <code>Interval</code>,
     <code>Rate</code>, <code>Time</code>, указываются в миллисекундах.
@@ -173,6 +178,18 @@ descScriptTemplate:
     Поддерживаемые переменные: <{{name}}>, <{{url}}>, <{{date}}>,
     <{{date:format}}> с совместимым с MomentJS форматом, например,
     <{{date:YYYY-MM-DD}}>.
+disabledScriptsGroup:
+  description: 'Used as "Disabled scripts: group"'
+  message: группировать
+disabledScriptsHide:
+  description: 'Used as "Disabled scripts: hide"'
+  message: скрыть
+disabledScriptsSelector:
+  description: Label of the option.
+  message: 'Отключённые скрипты:'
+disabledScriptsShow:
+  description: 'Used as "Disabled scripts: show"'
+  message: показать
 editHelpDocumention:
   description: Label in the editor help tab for the documentation link.
   message: 'Документация по блоку метаданных скриптов и <code>GM</code> API:'
@@ -300,7 +317,7 @@ helpForLocalFile:
   message: Показать инструкцию по перетаскиванию локальных скриптов
 hintForBatchAction:
   description: Hint shown next to the buttons for batch actions.
-  message: для сопоставления скриптов $1
+  message: применить к данным ($1) скриптам
 hintInputURL:
   description: Hint for a prompt box to input URL of a user script.
   message: 'Введите URL-адрес:'
@@ -439,9 +456,6 @@ labelFastFirefoxInjectHint:
 labelFeedback:
   description: Label of link to feedback page.
   message: Обратная связь
-labelFilterSort:
-  description: Label for sort filter.
-  message: Сортировать по $1
 labelGeneral:
   description: Label for general settings.
   message: Общие настройки
@@ -456,7 +470,7 @@ labelHomepageURL:
   message: 'Адрес домашней страницы:'
 labelIconURL:
   description: Label for the input.
-  message: Адрес значка
+  message: 'Адрес значка:'
 labelImportScriptData:
   description: Option to import script data along with scripts.
   message: Импорт данных скрипта
@@ -473,16 +487,16 @@ labelInjectionMode:
   message: 'Режим внедрения: '
 labelInstall:
   description: Shown in the title of the confirm page while trying to install a script.
-  message: Установка скрипта...
+  message: Установка скрипта
 labelKeepOriginal:
   description: Option to keep the original match or ignore rules.
   message: Сохранить исходное соответствие
 labelLastUpdatedAt:
   description: Label shown on last updated time.
-  message: Дата последнего обновления $1
+  message: 'Дата последнего обновления: $1'
 labelLineNumber:
   description: Label for line number jumper.
-  message: 'N строки:'
+  message: '№ строки:'
 labelMatch:
   description: Label of @match rules.
   message: '@match правила соответствия'
@@ -510,9 +524,6 @@ labelNotifyUpdates:
 labelNotifyUpdatesGlobal:
   description: Option to prioritize global notification option over script's setting.
   message: Игнорировать уведомления скриптов (вкладка настроек в редакторе)
-labelPopupSort:
-  description: Label in the VM settings tab for script list sort order in popup
-  message: Сортировка во всплывающем окне по $1
 labelPrivacyPolicy:
   description: Label of link to privacy policy
   message: Политика конфиденциальности
@@ -526,7 +537,7 @@ labelRelated:
   message: 'Справочные ссылки: '
 labelRemovedAt:
   description: Label for the time when the script is removed.
-  message: Удалён в $1
+  message: 'Дата удаления: $1'
 labelReplace:
   description: Label for replace input in search box.
   message: 'Заменить на: '
@@ -550,7 +561,7 @@ labelSettings:
   message: Настройки
 labelShowOrder:
   description: Label for option in dashboard -> script list
-  message: Показывать номера порядка выполнения
+  message: Показать номера порядка выполнения
 labelSync:
   description: Label for sync options.
   message: Синхронизация
@@ -575,7 +586,7 @@ labelSyncReauthorize:
   touched: false
 labelSyncRevoke:
   description: Label for button to revoke authorization for a service.
-  message: Выйти
+  message: Отозвать
 labelSyncScriptStatus:
   description: Label for option to sync script status.
   message: Синхронизировать состояние скриптов
@@ -608,7 +619,10 @@ labelViewSingleColumn:
   message: Один столбец
 labelViewTable:
   description: Label for option in dashboard script list to show the scripts as a table.
-  message: Табличный вид
+  message: Таблица
+labelWidth:
+  description: Width.
+  message: 'Ширина:'
 labelXhrInject:
   description: >-
     (`$1` will be shown as `page`) Option in Advanced settings to enable
@@ -745,7 +759,7 @@ msgLoading:
   touched: false
 msgLoadingData:
   description: Message shown on confirm page when the script to be installed is loading.
-  message: Загрузка кода скрипта...
+  message: Загружаются данные скрипта…
 msgLoadingDependency:
   description: Message shown on confirm page when the requirements are being downloaded.
   message: Загрузка зависимостей... ($1/$2)
@@ -781,7 +795,7 @@ msgReinstallScripts:
   description: >-
     Notification body shown for a missing @require or other resource when
     running such scripts.
-  message: 'Пожалуйста, пересохраните или переустановите эти скрипты:'
+  message: 'Пожалуйста, пере-сохраните или переустановите эти скрипты:'
 msgSameCode:
   description: Shown inside the title when re-installing a script that's already installed.
   message: ' (код такой же)'
@@ -831,9 +845,9 @@ msgSyntaxError:
 msgTardyMatch:
   description: Shown in popup for scripts that missed their chance to run.
   message: >-
-    Скрипт не существовал или не соответствовал URL при загрузке страницы, что
-    случается на сайтах с одностраничным приложением, таких как ФБ или
-    Instagram, которые используют фальшивую навигацию. Вы можете перезагрузить
+    Скрипт не существовал или не совпал по URL-адресу при загрузке страницы, что
+    случается на сайтах с одностраничным приложением, таких как Фейсбук или
+    IИнстаграм, которые используют фальшивую навигацию. Вы можете перезагрузить
     вкладку, чтобы запустить скрипт. Чтобы исправить скрипт, используйте @match
     для всего сайта, а затем находите изменения с помощью MutationObserver или
     API window.navigation.
@@ -868,15 +882,18 @@ optionPopupEnabledFirst:
 optionPopupGroupDisabled:
   description: Option to group disabled scripts in popup.
   message: Группировать отключённые скрипты
+  touched: false
 optionPopupGroupRunAt:
   description: Option to group scripts in popup shown only when sorting by execution order.
   message: Группировать по стадии @run-at
 optionPopupHideDisabled:
   description: Option to hide disabled scripts in popup.
   message: Скрыть отключённые скрипты
+  touched: false
 optionPopupShowDisabled:
   description: Option to show disabled scripts in popup.
   message: Показать отключённые скрипты
+  touched: false
 optionShowEnabledFirst:
   description: Option to show enabled scripts first in alphabetical order.
   message: Сначала показать включённые скрипты
@@ -897,6 +914,12 @@ optionUpdate:
     Label of the update section in settings and notification title for script
     updates.
   message: Обновление
+popupSettings:
+  description: Item inside the popup's "⋮" menu
+  message: Настройки всплывающего окна
+popupSettingsHint:
+  description: Hint for the config button in the popup
+  message: 'Правый щелчок: настройки всплывающего окна'
 readonly:
   description: Text in the editor's header for non-editable scripts.
   message: Только для чтения
@@ -957,6 +980,9 @@ skipScriptsMsg:
   message: >-
     Вы отключили пользовательские скрипты для этой страницы. Чтобы запустить их,
     перезагрузите или перейдите на вкладку.
+sortOrder:
+  description: Label for the script sort order in dashboard, settings, popup settings.
+  message: 'Сортировка по:'
 stopTracking:
   description: Button in a script installation dialog when actually tracking local file.
   message: Прекратить отслеживание
@@ -979,24 +1005,27 @@ titleSearchHintV2:
     Hover title for search icon in dashboard. Do not translate content between
     <code>...</code>.
   message: >-
-    * Клавиша <kbd>Enter</kbd> добавляет текст в историю автозаполнения.
+    * Клавиша <kbd>Enter</kbd> добавляет текст в историю автозаполнения
 
     * Все условия не зависят от регистра
 
     * Условия, разделённые пробелами, можно комбинировать
 
-    * Поиск по метаданным: <code>"Awesome Script" "Description"</code>
+    * Поиск по метаданным: <code>"Отличный скрипт" "Описание"</code>
 
     * Поиск по тегам: <code>#tag1 #tag2</code>
 
-    * Поиск по имени скрипта: <code>name: "awesome name"</code>
+    * Поиск по имени скрипта: <code>name: "прекрасное имя"</code>
 
-    * Поиск по коду скрипта: <code>code: "awesome code"</code>
+    * Поиск по коду скрипта: <code>code: "замечательный код"</code>
 
-    * Отрицательный поиск: <code>!#tag2 !name: "unwanted"</code>
+    * Отрицательный поиск: <code>!#tag2 !name: "нежелательное"</code>
 
     * Регулярные выражения: <code>/\w+?/</code>, <code>/\w+?/gi</code>,
     <code>name:/\w+?/</code>, <code>name+re:"\w+? с пробелом"</code>
+toggleInjection:
+  description: Label for a keyboard shortcut.
+  message: Переключить инъекцию пользовательского скрипта
 trackEdits:
   description: Button in a script installation dialog.
   message: Отслеживать внешние правки

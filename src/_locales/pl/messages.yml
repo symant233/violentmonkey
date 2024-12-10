@@ -139,8 +139,13 @@ confirmUndoImport:
     Cofnij wszystkie zmiany wprowadzone w bazie danych (importowanie,
     aktualizacja, edycja, dostosowywanie)
 descBlacklist:
-  description: HTML Description for the global blacklist.
-  message: Adresy URL, które są na tej liście, nie zostaną dołączone do skryptów.
+  description: Description for the global injection blacklist.
+  message: Czarna lista wstrzykiwań (skrypty nie będą działać w pasujących witrynach)
+descBlacklistNet:
+  description: Description for the global network blacklist.
+  message: >-
+    Czarna lista sieci (skrypty nie będą łączyć się z pasującymi witrynami i ich
+    plikami cookie)
 descCustomCSS:
   description: Description of custom CSS section.
   message: >-
@@ -174,6 +179,18 @@ descScriptTemplate:
   message: >-
     Obsługiwane zmienne: <{{name}}>, <{{url}}>, <{{date}}>, <{{date:format}}> w
     formacie zgodnym z MomentJS, np <{{date:YYYY-MM-DD}}>.
+disabledScriptsGroup:
+  description: 'Used as "Disabled scripts: group"'
+  message: grupuj
+disabledScriptsHide:
+  description: 'Used as "Disabled scripts: hide"'
+  message: ukryj
+disabledScriptsSelector:
+  description: Label of the option.
+  message: 'Wyłączone skrypty:'
+disabledScriptsShow:
+  description: 'Used as "Disabled scripts: show"'
+  message: pokaż
 editHelpDocumention:
   description: Label in the editor help tab for the documentation link.
   message: >-
@@ -441,9 +458,6 @@ labelFastFirefoxInjectHint:
 labelFeedback:
   description: Label of link to feedback page.
   message: Informacje zwrotne
-labelFilterSort:
-  description: Label for sort filter.
-  message: Sortuj wg $1
 labelGeneral:
   description: Label for general settings.
   message: Ogólne
@@ -458,7 +472,7 @@ labelHomepageURL:
   message: 'Adres URL strony głównej:'
 labelIconURL:
   description: Label for the input.
-  message: Adres URL ikony
+  message: 'Adres URL ikony:'
 labelImportScriptData:
   description: Option to import script data along with scripts.
   message: Importuj dane skryptów
@@ -514,9 +528,6 @@ labelNotifyUpdatesGlobal:
   message: >-
     Ignoruj ​​powiadomienia dla poszczególnych skryptów (zakładka „ustawienia” w
     edytorze)
-labelPopupSort:
-  description: Label in the VM settings tab for script list sort order in popup
-  message: 'Sortuj skrypty w wyskakującym okienku wg  $1 '
 labelPrivacyPolicy:
   description: Label of link to privacy policy
   message: Polityka prywatności
@@ -613,6 +624,9 @@ labelViewSingleColumn:
 labelViewTable:
   description: Label for option in dashboard script list to show the scripts as a table.
   message: Widok tabeli
+labelWidth:
+  description: Width.
+  message: 'Szerokość:'
 labelXhrInject:
   description: >-
     (`$1` will be shown as `page`) Option in Advanced settings to enable
@@ -869,15 +883,18 @@ optionPopupEnabledFirst:
 optionPopupGroupDisabled:
   description: Option to group disabled scripts in popup.
   message: Grupuj wyłączone skrypty
+  touched: false
 optionPopupGroupRunAt:
   description: Option to group scripts in popup shown only when sorting by execution order.
   message: Grupuj wg metadanych @run-at
 optionPopupHideDisabled:
   description: Option to hide disabled scripts in popup.
   message: Ukryj wyłączone skrypty
+  touched: false
 optionPopupShowDisabled:
   description: Option to show disabled scripts in popup.
   message: Pokaż wyłączone skrypty
+  touched: false
 optionShowEnabledFirst:
   description: Option to show enabled scripts first in alphabetical order.
   message: Pokazuj najpierw włączone skrypty
@@ -898,6 +915,12 @@ optionUpdate:
     Label of the update section in settings and notification title for script
     updates.
   message: Aktualizacja
+popupSettings:
+  description: Item inside the popup's "⋮" menu
+  message: Ustawienia wyskakującego okienka
+popupSettingsHint:
+  description: Hint for the config button in the popup
+  message: 'Prawy przycisk myszy: ustawienia wyskakującego okienka'
 readonly:
   description: Text in the editor's header for non-editable scripts.
   message: Tylko odczyt
@@ -954,6 +977,9 @@ skipScriptsMsg:
   message: >-
     Wyłączyłeś skrypty użytkownika dla tej strony. Aby je uruchomić, załaduj
     ponownie lub nawiguj w karcie.
+sortOrder:
+  description: Label for the script sort order in dashboard, settings, popup settings.
+  message: 'Kolejność sortowania:'
 stopTracking:
   description: Button in a script installation dialog when actually tracking local file.
   message: Przestań śledzić
@@ -994,6 +1020,9 @@ titleSearchHintV2:
 
     * Wyrażenia regularne: <code>/\w+?/</code>, <code>/\w+?/gi</code>,
     <code>name:/\w+?/</code>, <code>name+re:"\w+? with space"</code>
+toggleInjection:
+  description: Label for a keyboard shortcut.
+  message: ''
 trackEdits:
   description: Button in a script installation dialog.
   message: Śledź zmiany zewnętrzne

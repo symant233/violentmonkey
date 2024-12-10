@@ -37,7 +37,7 @@
           @click="onEditAll" tabindex="0" v-text="i18n('editValueAllHint')"/>
         <div
           v-for="key in pageKeys"
-          :key="key"
+          :key
           class="edit-values-row flex monospace-font"
           @keydown.delete.ctrl.exact="onRemove(key)"
           @click="onEdit(key)">
@@ -103,7 +103,7 @@
           ref="$value"
           class="h-100 mt-1"
           mode="application/json"
-          :readOnly="readOnly"
+          :readOnly
           @code-dirty="onChange"
           @keydown.tab.shift.exact.capture.stop
           :commands="{ close: onCancel, save: onSave }"
@@ -235,11 +235,7 @@ watch(current, (val, oldVal) => {
   if (val) {
     focusedElement = getActiveElement();
     nextTick(() => {
-      const vmCode = $value.value;
-      cm = vmCode.cm;
-      if (oldVal) {
-        vmCode.updateValue(val.value); // focuses CM, which we may override in isNew below
-      }
+      cm = $value.value.cm;
       if (val.isNew) {
         const el = $key.value;
         el.setSelectionRange(0, 0);

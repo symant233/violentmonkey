@@ -1,6 +1,6 @@
 import { debounce, initHooks, normalizeKeys, sendCmd } from '@/common';
 import { deepCopy, deepEqual, objectGet, objectSet } from '@/common/object';
-import defaults from '@/common/options-defaults';
+import defaults, { kScriptTemplate } from '@/common/options-defaults';
 import { addOwnCommands, init } from './init';
 import storage from './storage';
 
@@ -22,9 +22,8 @@ addOwnCommands({
 });
 
 const options = {};
-const STORAGE_KEY = 'options';
-const VERSION = 'version';
-const TPL_KEY = 'scriptTemplate';
+export const kOptions = 'options';
+export const kVersion = 'version';
 const TPL_OLD_VAL = `\
 // ==UserScript==
 // @name New Script
@@ -42,17 +41,17 @@ export const hookOptions = hooks.hook;
 hookOptions(data => sendCmd('UpdateOptions', data));
 
 export function initOptions(data) {
-  data = data[STORAGE_KEY] || {};
+  data = data[kOptions] || {};
   Object.assign(options, data);
   if (process.env.DEBUG) console.info('options:', options);
-  if (!options[VERSION]) {
-    setOption(VERSION, 1);
+  if (!options[kVersion]) {
+    setOption(kVersion, 1);
   }
-  if (options[TPL_KEY] === TPL_OLD_VAL) {
-    options[TPL_KEY] = defaults[TPL_KEY]; // will be detected by omitDefaultValue below
+  if (options[kScriptTemplate] === TPL_OLD_VAL) {
+    options[kScriptTemplate] = defaults[kScriptTemplate]; // will be detected by omitDefaultValue below
   }
   if (Object.keys(options).map(omitDefaultValue).some(Boolean)) {
-    delete options[`${TPL_KEY}Edited`]; // TODO: remove this in 2023
+    delete options[`${kScriptTemplate}Edited`]; // TODO: remove this in 2023
     writeOptionsLater();
   }
 }
@@ -116,7 +115,7 @@ export function setOption(key, value, silent) {
 }
 
 function writeOptions() {
-  return storage.base.setOne(STORAGE_KEY, options);
+  return storage.base.setOne(kOptions, options);
 }
 
 function omitDefaultValue(key) {

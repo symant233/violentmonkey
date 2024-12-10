@@ -1,6 +1,12 @@
+import { BLACKLIST, BLACKLIST_NET, FILE_GLOB_ALL } from '@/common/consts';
+
 export const kAutocompleteOnTyping = 'autocompleteOnTyping';
+export const kFiltersPopup = 'filtersPopup';
 export const kKillTrailingSpaceOnSave = 'killTrailingSpaceOnSave';
+export const kPopupWidth = 'popupWidth';
 export const kShowTrailingSpace = 'showTrailingSpace';
+export const kScriptTemplate = 'scriptTemplate';
+export const kUpdateEnabledScriptsOnly = 'updateEnabledScriptsOnly';
 const defaultsValueEditor = {
   [kAutocompleteOnTyping]: 100,
   lineWrapping: false,
@@ -17,8 +23,11 @@ export const defaultsEditor = {
 
 export default {
   [IS_APPLIED]: true,
+  [BLACKLIST]: FILE_GLOB_ALL,
+  [BLACKLIST_NET]: FILE_GLOB_ALL,
+  [kPopupWidth]: 320,
+  [kUpdateEnabledScriptsOnly]: true,
   autoUpdate: 1, // days, 0 = disable
-  updateEnabledScriptsOnly: true,
   // ignoreGrant: false,
   lastUpdate: 0,
   lastModified: 0,
@@ -38,7 +47,6 @@ export default {
   trackLocalFile: false,
   autoReload: false,
   features: null,
-  blacklist: null,
   syncScriptStatus: true,
   sync: null,
   customCSS: '',
@@ -63,7 +71,7 @@ export default {
     /** @type {boolean} */
     viewTable: false,
   },
-  filtersPopup: {
+  [kFiltersPopup]: {
     /** @type {'exec' | 'alpha'} */
     sort: 'exec',
     enabledFirst: false,
@@ -77,7 +85,7 @@ export default {
   editorWindow: false, // whether popup opens editor in a new window
   editorWindowPos: {}, // { left, top, width, height }
   editorWindowSimple: true, // whether to open a simplified popup or a normal browser window
-  scriptTemplate: `\
+  [kScriptTemplate]: `\
 // ==UserScript==
 // @name        New script {{name}}
 // @namespace   ${VIOLENTMONKEY} Scripts

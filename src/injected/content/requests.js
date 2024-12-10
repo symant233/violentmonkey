@@ -20,22 +20,22 @@ const LOADEND = 'loadend';
 const isBlobXhr = req => req[kXhrType] === 'blob';
 /** @type {GMReq.Content} */
 const requests = createNullObj();
-let navigator, getUAData, getUAProps;
+let navigator, getUAData, getUAProps, getHighEntropyValues;
 
 onScripts.push(data => {
-  if (data.xhr) {
-    // The tab may have a different UA due to a devtools override or about:config
-    navigator = global.navigator;
-    getUAProps = UA_PROPS;
-    for (let p = getPrototypeOf(navigator), i = 0; i < getUAProps.length; i++) {
-      getUAProps[i] = p && describeProperty(p, getUAProps[i]).get;
-      if (!i) {
-        if ((p = describeProperty(p, 'userAgentData'))) {
-          getUAData = p.get;
-          p = global.NavigatorUAData[PROTO];
-        } else {
-          getUAProps.length = 1;
-        }
+  // The tab may have a different UA due to a devtools override or about:config
+  navigator = global.navigator;
+  getUAProps = [];
+  for (let p = getPrototypeOf(navigator), i = 0; p && i < UA_PROPS.length; i++) {
+    getUAProps[i] = describeProperty(p, UA_PROPS[i]).get;
+    if (!i && (p = describeProperty(p, 'userAgentData')) && (getUAData = p.get)) {
+      // Guarding against broken implementations in linux chromium forks
+      if ((p = navigator::getUAData())
+      && (p = getPrototypeOf(p))
+      && (getHighEntropyValues = p.getHighEntropyValues)) {
+        data.info.uad = true;
+      } else {
+        p = getUAData = null;
       }
     }
   }
@@ -72,6 +72,18 @@ addHandlers({
     return sendCmd('HttpRequest', msg);
   },
   AbortRequest: true,
+  UA: () => navigator::getUAProps[0](),
+  UAD() {
+    if (getUAData) {
+      const res = createNullObj();
+      const uaData = navigator::getUAData();
+      for (let i = 1; i < getUAProps.length; i++) {
+        res[UA_PROPS[i]] = uaData::getUAProps[i]();
+      }
+      return res;
+    }
+  },
+  UAH: hints => (navigator::getUAData())::getHighEntropyValues(hints),
 });
 
 addBackgroundHandlers({

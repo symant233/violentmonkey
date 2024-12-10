@@ -1,9 +1,10 @@
-import { browserWindows, getActiveTab, noop, sendTabCmd, getFullUrl } from '@/common';
+import { browserWindows, getActiveTab, makePause, noop, sendTabCmd } from '@/common';
 import { getDomain } from '@/common/tld';
 import { addOwnCommands, addPublicCommands, commands } from './init';
 import { getOption } from './options';
 import { testScript } from './tester';
 import { CHROME, FIREFOX } from './ua';
+import { vetUrl } from './url';
 
 const openers = {};
 const openerTabIdSupported = !IS_FIREFOX // supported in Chrome
@@ -93,13 +94,14 @@ addPublicCommands({
     const srcUrl = src.url;
     const isInternal = !srcUrl || srcUrl.startsWith(extensionRoot);
     // only incognito storeId may be specified when opening in an incognito window
-    const { incognito, [kWindowId]: windowId } = srcTab;
+    const { incognito } = srcTab;
     const canOpenIncognito = !incognito || IS_FIREFOX || !/^(chrome[-\w]*):/.test(url);
     const tabOpts = {
       // normalizing as boolean because the API requires strict types
       active: !!active,
       pinned: !!pinned,
     };
+    let windowId = srcTab[kWindowId];
     let newTab;
     // Chrome can't open chrome-xxx: URLs in incognito windows
     // TODO: for src._removed maybe create a new window if cookieStoreId of active tab is different
@@ -119,7 +121,7 @@ addPublicCommands({
     if (!/^[-\w]+:/.test(url)) {
       url = isInternal
         ? browser.runtime.getURL(url)
-        : getFullUrl(url, srcUrl);
+        : vetUrl(url, srcUrl);
     }
     if (isInternal
         && url.startsWith(EDITOR_ROUTE)
@@ -144,7 +146,7 @@ addPublicCommands({
       // Replacing the currently focused start tab page for internal commands
       newTab = await browser.tabs.update(srcTab.id, { url, ...tabOpts }).catch(noop);
     }
-    if (!newTab) {
+    for (let retry = 0; !newTab && retry < 2; retry++) try {
       newTab = await browser.tabs.create({
         url,
         ...tabOpts,
@@ -155,6 +157,13 @@ addPublicCommands({
           ...openerTabIdSupported && { openerTabId: srcTab.id },
         },
       });
+    } catch (err) {
+      const m = err.message;
+      if (m.startsWith('Illegal to set private')) storeId = null;
+      else if (m.startsWith('No tab')) srcTab.id = null;
+      else if (m.startsWith('No window')) windowId = null;
+      else if (m.startsWith('Tabs cannot be edited')) await makePause(100);
+      else throw err; // TODO: put in storage and show in UI
     }
     if (active && newTab[kWindowId] !== windowId) {
       await browserWindows?.update(newTab[kWindowId], { focused: true });

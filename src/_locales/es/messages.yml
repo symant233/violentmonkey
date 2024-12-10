@@ -135,8 +135,11 @@ confirmUndoImport:
     is also shown as a confirmation dialog after clicking this button.
   message: ''
 descBlacklist:
-  description: HTML Description for the global blacklist.
+  description: Description for the global injection blacklist.
   message: Las URLs que coincidan en esta lista no serán inyectadas por los scripts.
+descBlacklistNet:
+  description: Description for the global network blacklist.
+  message: ''
 descCustomCSS:
   description: Description of custom CSS section.
   message: >-
@@ -158,6 +161,18 @@ descEditorOptionsVM:
   message: ''
 descScriptTemplate:
   description: Description of script template section.
+  message: ''
+disabledScriptsGroup:
+  description: 'Used as "Disabled scripts: group"'
+  message: ''
+disabledScriptsHide:
+  description: 'Used as "Disabled scripts: hide"'
+  message: ''
+disabledScriptsSelector:
+  description: Label of the option.
+  message: ''
+disabledScriptsShow:
+  description: 'Used as "Disabled scripts: show"'
   message: ''
 editHelpDocumention:
   description: Label in the editor help tab for the documentation link.
@@ -418,9 +433,6 @@ labelFastFirefoxInjectHint:
 labelFeedback:
   description: Label of link to feedback page.
   message: Comentarios
-labelFilterSort:
-  description: Label for sort filter.
-  message: Ordenar por $1
 labelGeneral:
   description: Label for general settings.
   message: General
@@ -489,9 +501,6 @@ labelNotifyUpdates:
 labelNotifyUpdatesGlobal:
   description: Option to prioritize global notification option over script's setting.
   message: ignorar notificación por script (pestaña "configuración" en el editor)
-labelPopupSort:
-  description: Label in the VM settings tab for script list sort order in popup
-  message: Ordenar los scripts en ventana emergente por $1
 labelPrivacyPolicy:
   description: Label of link to privacy policy
   message: Política de privacidad
@@ -588,6 +597,9 @@ labelViewSingleColumn:
 labelViewTable:
   description: Label for option in dashboard script list to show the scripts as a table.
   message: Vista de tabla
+labelWidth:
+  description: Width.
+  message: ''
 labelXhrInject:
   description: >-
     (`$1` will be shown as `page`) Option in Advanced settings to enable
@@ -848,15 +860,18 @@ optionPopupEnabledFirst:
 optionPopupGroupDisabled:
   description: Option to group disabled scripts in popup.
   message: Agrupar scripts desactivados
+  touched: false
 optionPopupGroupRunAt:
   description: Option to group scripts in popup shown only when sorting by execution order.
   message: Agrupar por etapa @run-at
 optionPopupHideDisabled:
   description: Option to hide disabled scripts in popup.
   message: Esconder scripts desactivados
+  touched: false
 optionPopupShowDisabled:
   description: Option to show disabled scripts in popup.
   message: Mostrar scripts desactivados
+  touched: false
 optionShowEnabledFirst:
   description: Option to show enabled scripts first in alphabetical order.
   message: Mostrar scripts activos primero
@@ -877,6 +892,12 @@ optionUpdate:
     Label of the update section in settings and notification title for script
     updates.
   message: Actualizar
+popupSettings:
+  description: Item inside the popup's "⋮" menu
+  message: ''
+popupSettingsHint:
+  description: Hint for the config button in the popup
+  message: ''
 readonly:
   description: Text in the editor's header for non-editable scripts.
   message: ''
@@ -927,6 +948,9 @@ skipScripts:
 skipScriptsMsg:
   description: Message shown in the popup if the tab was reloaded without scripts.
   message: ''
+sortOrder:
+  description: Label for the script sort order in dashboard, settings, popup settings.
+  message: ''
 stopTracking:
   description: Button in a script installation dialog when actually tracking local file.
   message: ''
@@ -948,6 +972,9 @@ titleSearchHintV2:
   description: >-
     Hover title for search icon in dashboard. Do not translate content between
     <code>...</code>.
+  message: ''
+toggleInjection:
+  description: Label for a keyboard shortcut.
   message: ''
 trackEdits:
   description: Button in a script installation dialog.

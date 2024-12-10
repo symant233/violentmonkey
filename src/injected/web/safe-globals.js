@@ -23,7 +23,10 @@ export let
   Object,
   SafeProxy,
   SafeSymbol,
-  UnsafePromise,
+  /** Note that in Firefox it's reused to store the current realm's prototype of Promise */
+  SafePromiseConstructor,
+  /** May be unsafe in old bugged Chrome */
+  SafePromise,
   fire,
   getWindowLength,
   getWindowParent,
@@ -77,7 +80,8 @@ export const cloneInto = PAGE_MODE_HANDSHAKE ? null : global.cloneInto;
  * immediately after adding it to DOM via direct manipulation in frame.contentWindow
  * or window[0] before our content script runs at document_start, https://crbug.com/1261964 */
 export const VAULT = (() => {
-  let ArrayP;
+  let tmp;
+  let ChromePromiseBug;
   let Reflect;
   let SafeObject;
   let i = -1;
@@ -98,7 +102,9 @@ export const VAULT = (() => {
     src = res[0];
     srcWindow = src;
     // In FF some stuff from a detached iframe doesn't work, so we export it from content
-    srcFF = IS_FIREFOX && res[1];
+    if (IS_FIREFOX) srcFF = res[1];
+    // Detecting via a feature that was added in Chrome 115
+    else ChromePromiseBug = !src.document.requestStorageAccessFor;
     res = false;
   }
   if (!res) {
@@ -129,10 +135,10 @@ export const VAULT = (() => {
     objectKeys = res[i += 1] || SafeObject.keys,
     objectValues = res[i += 1] || SafeObject.values,
     // Array.prototype
-    concat = res[i += 1] || (ArrayP = src.Array[PROTO]).concat,
-    filter = res[i += 1] || ArrayP.filter,
-    forEach = res[i += 1] || ArrayP.forEach,
-    indexOf = res[i += 1] || ArrayP.indexOf,
+    concat = res[i += 1] || (tmp = src.Array[PROTO]).concat,
+    filter = res[i += 1] || tmp.filter,
+    forEach = res[i += 1] || tmp.forEach,
+    indexOf = res[i += 1] || tmp.indexOf,
     // Element.prototype
     remove = res[i += 1] || src.Element[PROTO].remove,
     // String.prototype
@@ -157,7 +163,12 @@ export const VAULT = (() => {
     parseFromString = res[i += 1] || SafeDOMParser[PROTO].parseFromString,
     reflectOwnKeys = res[i += 1] || Reflect.ownKeys,
     stopImmediatePropagation = res[i += 1] || src.Event[PROTO].stopImmediatePropagation,
-    then = res[i += 1] || src.Promise[PROTO].then,
+    SafePromise = res[i += 1] || src.Promise,
+    SafePromiseConstructor = res[i += 1] || (
+      tmp = SafePromise[PROTO],
+      IS_FIREFOX ? SafePromise : tmp.constructor
+    ),
+    then = res[i += 1] || tmp.then,
     urlSearchParamsToString = res[i += 1] || src.URLSearchParams[PROTO].toString,
     // various getters
     getCurrentScript = res[i += 1] || describeProperty(src.Document[PROTO], 'currentScript').get,
@@ -175,13 +186,17 @@ export const VAULT = (() => {
   ];
   // Well-known Symbols are unforgeable
   toStringTagSym = SafeSymbol.toStringTag;
+  if (ChromePromiseBug) {
+    /* Chrome pre-115 can't use SafePromise when iframe is removed, fixed in crrev.com/1142900.
+     * We'll use the unsafe one from `window` only for userscript API stuff, not internally.
+     * Getting it in a `try` because `Promise` may already have a broken getter. */
+    try { SafePromise = Promise; } catch {/**/}
+  } else if (IS_FIREFOX) {
+    // Hijacking an unused global to store the current realm's Promise prototype
+    SafePromiseConstructor = getPrototypeOf(promiseResolve());
+  } else {
+    // Chrome 115+: binding Promise to this realm
+    SafePromise = safeBind(SafePromiseConstructor, getPrototypeOf(promiseResolve()));
+  }
   return res;
 })();
-
-try {
-  /* We can't use safe Promise from vault because it stops working when iframe is removed,
-   * so we use the unsafe current global - only for userscript API stuff, not internally.
-   * Using `try` because the `Promise` global may be an already spoofed getter.
-   * TODO: try reimplementing Promise in our sandbox wrapper if it can work with user code */
-  UnsafePromise = Promise;
-} catch (e) { /**/ }
